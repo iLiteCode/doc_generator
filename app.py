@@ -245,68 +245,12 @@ def generate_pdf_file(form_data, company, doc_type):
     else:
         raise Exception("Failed to generate PDF")
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
 def index():
-    if request.method == 'POST':
-
-        full_name = request.form.get('full_name')
-        aadhar_no = request.form.get('aadhar_no')
-
-        existing_employee = Employee.query.filter_by(
-            full_name=full_name,
-            aadhar_no=aadhar_no
-        ).first()
-
-        if existing_employee:
-            employee = existing_employee
-            # No increment_per_month to update
-        else:
-            employee = Employee(
-                employee_id="",  # Temporary, will set after flush
-                full_name=full_name,
-                aadhar_no=aadhar_no,
-                designation=request.form.get('designation'),
-                base_ctc=float(request.form.get('ctc') or 0)
-            )
-            db.session.add(employee)
-            db.session.flush()  # Get the employee ID before commit
-
-            employee.employee_id = f"LC{100 + employee.id}"
-            db.session.commit()
-    
-        # Store dates as strings initially
-        form_data = {
-            'employee_id': employee.employee_id,
-            'company': request.form.get('company'),
-            'document_type': request.form.get('document_type'),
-            'full_name': full_name,
-            'address': request.form.get('address'),
-            'aadhar_no': aadhar_no,
-            'joining_date': request.form.get('joining_date'),  # Keep as string
-            'resignation_date': request.form.get('resignation_date'),  # Keep as string
-            'designation': request.form.get('designation'),
-            'ctc': request.form.get('ctc') or 0,
-            # increment_per_month removed
-            'bank_details': {
-                'account_holder': request.form.get('account_holder'),
-                'account_number': request.form.get('account_number'),
-                'bank_name': request.form.get('bank_name'),
-                'branch': request.form.get('branch'),
-                'ifsc_code': request.form.get('ifsc_code')
-            },
-            'pan_no': request.form.get('pan_no')
-        }
-
-        selected_months = request.form.getlist('months')
-        selected_year = request.form.get('year')
-
-        session['selected_months'] = selected_months
-        session['selected_year'] = selected_year
-        session['form_data'] = form_data
-
-        return redirect(url_for('preview'))
-
-    return render_template('index.html', companies=COMPANIES)
+    if session.get('is_admin'):
+        return redirect(url_for('admin_dashboard'))
+    else:
+        return redirect(url_for('admin_login'))
 
 @app.route('/preview')
 def preview():
@@ -539,11 +483,6 @@ def generate():
         flash('Employee not found', 'danger')
         return redirect(url_for('admin_dashboard'))
 
-    employee_id = secure_filename(form_data.get('employee_id', 'unknown'))
-    base_folder = os.path.join(app.config['UPLOAD_FOLDER'], "employee_documents")
-    employee_folder = os.path.join(base_folder, employee_id)
-    os.makedirs(employee_folder, exist_ok=True)
-
     # ------------------------- BASE SALARY CALCULATION -------------------------
     ctc = float(form_data.get('ctc') or 0)
     increment_per_month = float(form_data.get('increment_per_month') or 0)
@@ -628,7 +567,6 @@ def generate():
             print(f"  worked_days={form_data_copy['worked_days']}, lop={form_data_copy['lop']}, paid_days={form_data_copy['paid_days']}")
 
             # Generate amount in words
-            from num2words import num2words
             words = num2words(int(form_data_copy['net_salary']), lang='en_IN').title() + ' Rupees'
             form_data_copy['words'] = words
 
@@ -640,39 +578,60 @@ def generate():
             )
 
             filename = f"Salary_Slip_{month}.pdf"
-            filepath = os.path.join(employee_folder, filename)
 
-            print(f"  Attempting to generate PDF: {filename}")
-            if html_to_pdf(html, filepath):
+            # Create a temporary file for the PDF
+            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
+                temp_path = tmp_file.name
+
+            if html_to_pdf(html, temp_path):
                 print(f"  ✅ PDF generated successfully")
                 files_generated.append(month)
-                if employee:
-                    doc = Document(
-                        employee_id=employee.id,
-                        document_type=doc_type,
-                        filename=filename,
-                        file_path=filepath,
-                        month=month,
-                        year=session.get('selected_year', datetime.now().year),
-                        generated_by=session.get('admin_username', 'system')
-                    )
-                    db.session.add(doc)
-                    db.session.flush()
 
-                    if upload_to_drive_flag and employee:
-                        try:
-                            drive_file_id = upload_file_to_drive(
-                                file_path=filepath,
+                if upload_to_drive_flag and employee:
+                    try:
+                        drive_file_id = upload_file_to_drive(
+                            file_path=temp_path,
+                            filename=filename,
+                            folder_name=f"Salary Slips/{month}",
+                            employee=employee
+                        )
+                        uploaded_files.append(filename)
+                        print(f"  ✅ Uploaded to Drive")
+
+                        # Save document record with Drive file ID only (no local path)
+                        if employee:
+                            doc = Document(
+                                employee_id=employee.id,
+                                document_type=doc_type,
                                 filename=filename,
-                                folder_name=f"Salary Slips/{month}",
-                                employee=employee
+                                file_path=None,  # no local file
+                                month=month,
+                                year=session.get('selected_year', datetime.now().year),
+                                generated_by=session.get('admin_username', 'system'),
+                                drive_file_id=drive_file_id
                             )
-                            doc.drive_file_id = drive_file_id
-                            uploaded_files.append(filename)
-                            print(f"  ✅ Uploaded to Drive")
-                        except Exception as e:
-                            print(f"  ❌ Drive upload error: {e}")
-                            flash(f'{filename} upload failed', 'warning')
+                            db.session.add(doc)
+                    except Exception as e:
+                        print(f"  ❌ Drive upload error: {e}")
+                        flash(f'{filename} upload failed', 'warning')
+                else:
+                    # Upload not requested – still create document record but without Drive ID
+                    if employee:
+                        doc = Document(
+                            employee_id=employee.id,
+                            document_type=doc_type,
+                            filename=filename,
+                            file_path=None,
+                            month=month,
+                            year=session.get('selected_year', datetime.now().year),
+                            generated_by=session.get('admin_username', 'system'),
+                            drive_file_id=None
+                        )
+                        db.session.add(doc)
+
+                # Delete temporary file
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
             else:
                 print(f"  ❌ PDF generation FAILED")
                 failed_months.append(month)
@@ -708,9 +667,14 @@ def generate():
     )
 
     filename = f"{doc_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-    filepath = os.path.join(employee_folder, filename)
 
-    if not html_to_pdf(html, filepath):
+    # Create temporary file
+    with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
+        temp_path = tmp_file.name
+
+    if not html_to_pdf(html, temp_path):
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
         flash('Failed to generate PDF', 'danger')
         return redirect(url_for('admin_dashboard'))
 
@@ -736,50 +700,54 @@ def generate():
             db.session.rollback()
 
     # ------------------------- SAVE DOCUMENT RECORD -------------------------
+    drive_file_id = None
+    if upload_to_drive_flag and employee:
+        try:
+            folder_map = {
+                'offer_letter': 'Offer Letters',
+                'experience_letter': 'Experience Letters',
+                'increment_letter': 'Increment Letters',
+                'relieving_letter': 'Relieving Letters'
+            }
+            folder_name = folder_map.get(doc_type, 'Other Documents')
+            drive_file_id = upload_file_to_drive(
+                file_path=temp_path,
+                filename=filename,
+                folder_name=folder_name,
+                employee=employee
+            )
+            flash('Document uploaded to Drive successfully!', 'success')
+        except Exception as e:
+            print("Drive Upload Error:", e)
+            flash('Drive upload failed', 'warning')
+
+    # Save document record (with Drive ID if available, no local path)
     if employee:
         doc = Document(
             employee_id=employee.id,
             document_type=doc_type,
             filename=filename,
-            file_path=filepath,
-            generated_by=session.get('admin_username', 'system')
+            file_path=None,
+            generated_by=session.get('admin_username', 'system'),
+            drive_file_id=drive_file_id
         )
         db.session.add(doc)
-        db.session.flush()
-
-        if upload_to_drive_flag and employee:
-            try:
-                folder_map = {
-                    'offer_letter': 'Offer Letters',
-                    'experience_letter': 'Experience Letters',
-                    'increment_letter': 'Increment Letters',
-                    'relieving_letter': 'Relieving Letters'
-                }
-                folder_name = folder_map.get(doc_type, 'Other Documents')
-                drive_file_id = upload_file_to_drive(
-                    file_path=filepath,
-                    filename=filename,
-                    folder_name=folder_name,
-                    employee=employee
-                )
-                doc.drive_file_id = drive_file_id
-                flash('Document uploaded to Drive successfully!', 'success')
-            except Exception as e:
-                print("Drive Upload Error:", e)
-                flash('Drive upload failed', 'warning')
 
     db.session.commit()
+
+    # Delete temporary file
+    if os.path.exists(temp_path):
+        os.unlink(temp_path)
+
+    # Clear session data
     session.pop('form_data', None)
     session.pop('selected_months', None)
     session.pop('selected_year', None)
 
     flash(f'{doc_type.replace("_", " ").title()} generated successfully!', 'success')
 
-    if os.path.exists(filepath):
-        return send_file(filepath, as_attachment=True, download_name=filename, mimetype='application/pdf')
-    else:
-        flash('File not found!', 'danger')
-        return redirect(url_for('admin_dashboard'))
+    # No local file download – redirect to dashboard
+    return redirect(url_for('admin_dashboard'))
 
 @app.route('/generated_docs/<filename>')
 def serve_generated_file(filename):
@@ -807,6 +775,9 @@ def admin_documents():
 #admin login
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
+    if session.get('is_admin'):
+        return redirect(url_for('admin_dashboard'))
+    
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -1306,35 +1277,6 @@ def view_employee(emp_id):
                          latest_increment=latest_increment,
                          employee_folder=employee_folder)
 
-# Serve employee documents
-@app.route('/employee_docs/<emp_folder>/<doc_type>/<filename>')
-def serve_employee_document(emp_folder, doc_type, filename):
-    if not session.get('is_admin'):
-        return "Unauthorized", 403
-    
-    # Construct the path to the document
-    # emp_folder format: EMP0001_John_Doe
-    base_storage = os.path.join(app.root_path, 'generated_docs', 'employee_documents')
-    
-    # Try both possible structures
-    possible_paths = [
-        os.path.join(base_storage, emp_folder, doc_type, filename),  # With subfolder
-        os.path.join(base_storage, emp_folder, filename)  # Without subfolder
-    ]
-    
-    for folder_path in possible_paths:
-        if os.path.exists(folder_path):
-            directory = os.path.dirname(folder_path)
-            return send_from_directory(directory, filename)
-    
-    # If file not found, try to find it in the database
-    document = Document.query.filter_by(filename=filename).first()
-    if document and os.path.exists(document.file_path):
-        directory = os.path.dirname(document.file_path)
-        return send_from_directory(directory, filename)
-    
-    return "File not found", 404
-
 def get_employee_folder_name(employee):
     """Generate folder name for employee documents"""
     return f"{employee.employee_id}_{employee.full_name.replace(' ', '_')}"
@@ -1713,26 +1655,15 @@ def delete_document(doc_id):
     doc = Document.query.get_or_404(doc_id)
     employee = doc.employee
     drive_file_id = doc.drive_file_id
-    file_path = doc.file_path
 
-    # 1. Delete local file
-    if file_path and os.path.exists(file_path):
-        try:
-            os.remove(file_path)
-        except Exception as e:
-            print(f"Error deleting local file: {e}")
-
-    # 2. Delete from Drive if we have a file ID
+    # Delete from Drive if we have a file ID
     if drive_file_id:
-        # Get parent folder before deleting the file
         parent_id = get_parent_folder_id(drive_file_id)
         delete_drive_file(drive_file_id)
-
-        # If parent folder is now empty, delete it
         if parent_id and is_folder_empty(parent_id):
             delete_drive_folder(parent_id)
 
-    # 3. Remove database record
+    # Remove database record
     db.session.delete(doc)
     db.session.commit()
 
