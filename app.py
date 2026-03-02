@@ -1,4 +1,3 @@
-import html
 import os
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
@@ -13,6 +12,7 @@ import zipfile
 import subprocess
 import tempfile
 
+from weasyprint import HTML
 from flask import redirect, url_for, flash
 from config import COMPANIES
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -29,7 +29,7 @@ from num2words import num2words
 app = Flask(__name__)
 app.secret_key = "super-secret-key"
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://LiteCode:LiteCode%400804@localhost/lc_lms'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:ZEUZEsxDLLJigPBxEWmKSRUXWbBlkGDk@mysql.railway.internal:3306/railway'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, "generated_docs")
 # Google Drive Configuration
@@ -145,23 +145,12 @@ class Payment(db.Model):
     document = db.relationship('Document', backref='payment')
 
 def html_to_pdf(html_content, output_path):
-    weasyprint_path = os.path.join(app.root_path, 'weasyprint', 'weasyprint.exe')
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
-        f.write(html_content)
-        temp_html_path = f.name
-
     try:
-        result = subprocess.run(
-            [weasyprint_path, temp_html_path, output_path],
-            capture_output=True, text=True, timeout=30
-        )
-        return result.returncode == 0
+        HTML(string=html_content).write_pdf(output_path)
+        return True
     except Exception as e:
         print("WeasyPrint error:", e)
         return False
-    finally:
-        if os.path.exists(temp_html_path):
-            os.unlink(temp_html_path)
 
 @app.template_filter('humanize')
 def humanize_filter(value):
