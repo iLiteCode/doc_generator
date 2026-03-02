@@ -1,4 +1,10 @@
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
 from flask import Flask, flash, render_template, request, redirect, url_for, session, send_file, send_from_directory
@@ -12,7 +18,10 @@ import zipfile
 import subprocess
 import tempfile
 
-from weasyprint import HTML
+try:
+    from weasyprint import HTML
+except:
+    HTML = None
 from flask import redirect, url_for, flash
 from config import COMPANIES
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -29,7 +38,7 @@ from num2words import num2words
 app = Flask(__name__)
 app.secret_key = "super-secret-key"
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:ZEUZEsxDLLJigPBxEWmKSRUXWbBlkGDk@mysql.railway.internal:3306/railway'
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, "generated_docs")
 # Google Drive Configuration
