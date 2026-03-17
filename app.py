@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 import os
+import json
 
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -41,14 +42,24 @@ if DATABASE_URL:
 else:
     # Local development – use MySQL
     app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://LiteCode:LiteCode%400804@localhost/lc_lms'
-    
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, "generated_docs")
 # Google Drive Configuration
 app.config['GOOGLE_DRIVE_TOKEN_FOLDER'] = os.path.join(app.root_path, "tokens")
 os.makedirs(app.config['GOOGLE_DRIVE_TOKEN_FOLDER'], exist_ok=True)
 
-CLIENT_SECRETS_FILE = "credentials.json"  # Download this from Google Cloud Console
+#client secret file
+CLIENT_SECRETS_FILE = "credentials.json"
+if os.getenv('GOOGLE_CREDENTIALS'):
+    # Load from environment variable (for production)
+    client_config = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
+    # Extract just the web client config
+    if 'web' in client_config:
+        client_config = client_config['web']
+else:
+    pass
+
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 # Use environment variable with fallback for local development
 REDIRECT_URI = os.getenv('OAUTH_REDIRECT_URI', 'http://localhost:5000/oauth2callback')
@@ -327,6 +338,43 @@ def calculate_annual_income_tax(annual_ctc):
 #     finally:
 #         if os.path.exists(temp_html_path):
 #             os.unlink(temp_html_path)
+
+def get_google_flow(redirect_uri=None, state=None):
+    """Create a Google OAuth flow from environment variable or file"""
+    if os.getenv('GOOGLE_CREDENTIALS'):
+        # Use config from environment variable
+        client_config = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
+        if 'web' in client_config:
+            client_config = client_config['web']
+        
+        if state:
+            return Flow.from_client_config(
+                client_config,
+                scopes=SCOPES,
+                state=state,
+                redirect_uri=redirect_uri or REDIRECT_URI
+            )
+        else:
+            return Flow.from_client_config(
+                client_config,
+                scopes=SCOPES,
+                redirect_uri=redirect_uri or REDIRECT_URI
+            )
+    else:
+        # Fall back to file
+        if state:
+            return Flow.from_client_secrets_file(
+                CLIENT_SECRETS_FILE,
+                scopes=SCOPES,
+                state=state,
+                redirect_uri=redirect_uri or REDIRECT_URI
+            )
+        else:
+            return Flow.from_client_secrets_file(
+                CLIENT_SECRETS_FILE,
+                scopes=SCOPES,
+                redirect_uri=redirect_uri or REDIRECT_URI
+            )
 
 @app.template_filter('humanize')
 def humanize_filter(value):
@@ -2058,62 +2106,43 @@ def delete_document(doc_id):
 
 @app.route('/authorize')
 def authorize():
-    """Start OAuth flow for Google Drive"""
     if not session.get('is_admin'):
         return redirect(url_for('admin_login'))
-    
-    # Check if credentials.json exists
-    if not os.path.exists(CLIENT_SECRETS_FILE):
-        flash('Google Drive credentials file not found. Please add credentials.json to your project.', 'danger')
+
+    try:
+        flow = get_google_flow()
+    except Exception as e:
+        flash(f'Failed to load Google credentials: {str(e)}', 'danger')
         return redirect(url_for('admin_dashboard'))
-    
-    # Create flow instance
-    flow = Flow.from_client_secrets_file(
-        CLIENT_SECRETS_FILE,
-        scopes=SCOPES,
-        redirect_uri=REDIRECT_URI
-    )
-    
-    # Generate authorization URL
+
     authorization_url, state = flow.authorization_url(
         access_type='offline',
         include_granted_scopes='true',
         prompt='consent'
     )
     
-    # Store state in session for callback
     session['oauth_state'] = state
-    
     return redirect(authorization_url)
 
 @app.route('/oauth2callback')
 def oauth2callback():
-    """Handle OAuth callback from Google"""
-    # Verify state
     if 'oauth_state' not in session:
         flash('OAuth session expired. Please try again.', 'danger')
         return redirect(url_for('authorize'))
-    
-    # Create flow instance
-    flow = Flow.from_client_secrets_file(
-        CLIENT_SECRETS_FILE,
-        scopes=SCOPES,
-        state=session['oauth_state'],
-        redirect_uri=REDIRECT_URI
-    )
-    
-    # Fetch token
-    flow.fetch_token(authorization_response=request.url)
-    credentials = flow.credentials
-    
-    # Save credentials for future use
+
+    try:
+        flow = get_google_flow(redirect_uri=REDIRECT_URI, state=session['oauth_state'])
+        flow.fetch_token(authorization_response=request.url)
+        credentials = flow.credentials
+    except Exception as e:
+        flash(f'OAuth callback failed: {str(e)}', 'danger')
+        return redirect(url_for('admin_dashboard'))
+
     token_path = os.path.join(app.config['GOOGLE_DRIVE_TOKEN_FOLDER'], 'token.pickle')
     with open(token_path, 'wb') as token:
         pickle.dump(credentials, token)
     
-    # Clear session state
     session.pop('oauth_state', None)
-    
     flash('✅ Successfully connected to Google Drive!', 'success')
     return redirect(url_for('admin_dashboard'))
 
