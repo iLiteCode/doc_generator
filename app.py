@@ -2124,7 +2124,10 @@ def oauth2callback():
         return redirect(url_for('authorize'))
 
     try:
-        flow = get_google_flow(redirect_uri=REDIRECT_URI, state=session['oauth_state'])
+        # FIXED: Don't pass redirect_uri parameter
+        flow = get_google_flow(state=session['oauth_state'])
+        
+        # The redirect_uri is already set inside get_google_flow()
         flow.fetch_token(authorization_response=request.url)
         credentials = flow.credentials
     except Exception as e:
