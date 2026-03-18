@@ -49,20 +49,28 @@ app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, "generated_docs")
 app.config['GOOGLE_DRIVE_TOKEN_FOLDER'] = os.path.join(app.root_path, "tokens")
 os.makedirs(app.config['GOOGLE_DRIVE_TOKEN_FOLDER'], exist_ok=True)
 
-#client secret file
-CLIENT_SECRETS_FILE = "credentials.json"
-if os.getenv('GOOGLE_CREDENTIALS'):
-    # Load from environment variable (for production)
-    client_config = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
-    # Extract just the web client config
-    if 'web' in client_config:
-        client_config = client_config['web']
+# Google OAuth Configuration - Use environment variables directly
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+REDIRECT_URI = os.getenv('OAUTH_REDIRECT_URI', 
+    'https://doc-generator-z2b2.onrender.com/oauth2callback' if os.getenv('RENDER') else 'http://localhost:5000/oauth2callback')
+
+if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+    print("Warning: Google OAuth credentials not found in environment variables")
+    # You can add fallback logic here if needed
 else:
-    pass
+    # Create client config from environment variables
+    client_config = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "project_id": os.getenv('GOOGLE_PROJECT_ID', ''),
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_secret": GOOGLE_CLIENT_SECRET,
+        "redirect_uris": [REDIRECT_URI]
+    }
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
-# Use environment variable with fallback for local development
-REDIRECT_URI = os.getenv('OAUTH_REDIRECT_URI', 'http://localhost:5000/oauth2callback')
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], "employee_documents"), exist_ok=True)
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], "profiles"), exist_ok=True)
 
@@ -339,42 +347,27 @@ def calculate_annual_income_tax(annual_ctc):
 #         if os.path.exists(temp_html_path):
 #             os.unlink(temp_html_path)
 
-def get_google_flow(redirect_uri=None, state=None):
-    """Create a Google OAuth flow from environment variable or file"""
-    if os.getenv('GOOGLE_CREDENTIALS'):
-        # Use config from environment variable
-        client_config = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
-        if 'web' in client_config:
-            client_config = client_config['web']
-        
-        if state:
-            return Flow.from_client_config(
-                client_config,
-                scopes=SCOPES,
-                state=state,
-                redirect_uri=redirect_uri or REDIRECT_URI
-            )
-        else:
-            return Flow.from_client_config(
-                client_config,
-                scopes=SCOPES,
-                redirect_uri=redirect_uri or REDIRECT_URI
-            )
-    else:
-        # Fall back to file
-        if state:
-            return Flow.from_client_secrets_file(
-                CLIENT_SECRETS_FILE,
-                scopes=SCOPES,
-                state=state,
-                redirect_uri=redirect_uri or REDIRECT_URI
-            )
-        else:
-            return Flow.from_client_secrets_file(
-                CLIENT_SECRETS_FILE,
-                scopes=SCOPES,
-                redirect_uri=redirect_uri or REDIRECT_URI
-            )
+def get_google_flow(state=None):
+    """Create and return a Google OAuth flow object"""
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        return None
+    
+    # Create flow using client configuration
+    flow = Flow.from_client_config(
+        {
+            "web": {
+                "client_id": GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "redirect_uris": [REDIRECT_URI]
+            }
+        },
+        scopes=SCOPES,
+        state=state  # Add this line
+    )
+    flow.redirect_uri = REDIRECT_URI
+    return flow
 
 @app.template_filter('humanize')
 def humanize_filter(value):
