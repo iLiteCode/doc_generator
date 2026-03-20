@@ -11,7 +11,7 @@ from flask import Flask, flash, render_template, request, redirect, url_for, ses
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.utils import secure_filename
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 import io
 import zipfile
 import subprocess
@@ -195,13 +195,13 @@ class Company(db.Model):
     notice_period = db.Column(db.String(50), nullable=True)
 
 #function for production
-def html_to_pdf(html_content, output_path):
-    try:
-        HTML(string=html_content).write_pdf(output_path)
-        return True
-    except Exception as e:
-        print("WeasyPrint error:", e)
-        return False
+# def html_to_pdf(html_content, output_path):
+#     try:
+#         HTML(string=html_content).write_pdf(output_path)
+#         return True
+#     except Exception as e:
+#         print("WeasyPrint error:", e)
+#         return False
 
 def calculate_salary_components(ctc, increment_per_month=0, paid_days=30, month_days=30):
     """
@@ -320,32 +320,32 @@ def calculate_annual_income_tax(annual_ctc):
         return 112500 + (taxable_income - 1000000) * 0.3
 
 #local function
-# def html_to_pdf(html_content, output_path):
-#     # Path to the standalone WeasyPrint executable (for local Windows)
-#     weasyprint_path = os.path.join(app.root_path, 'weasyprint', 'weasyprint.exe')
+def html_to_pdf(html_content, output_path):
+    # Path to the standalone WeasyPrint executable (for local Windows)
+    weasyprint_path = os.path.join(app.root_path, 'weasyprint', 'weasyprint.exe')
     
-#     with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
-#         f.write(html_content)
-#         temp_html_path = f.name
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
+        f.write(html_content)
+        temp_html_path = f.name
 
-#     try:
-#         result = subprocess.run(
-#             [weasyprint_path, temp_html_path, output_path],
-#             capture_output=True,
-#             text=True,
-#             timeout=30
-#         )
-#         if result.returncode == 0:
-#             return True
-#         else:
-#             print("WeasyPrint error:", result.stderr)
-#             return False
-#     except Exception as e:
-#         print("WeasyPrint exception:", e)
-#         return False
-#     finally:
-#         if os.path.exists(temp_html_path):
-#             os.unlink(temp_html_path)
+    try:
+        result = subprocess.run(
+            [weasyprint_path, temp_html_path, output_path],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        if result.returncode == 0:
+            return True
+        else:
+            print("WeasyPrint error:", result.stderr)
+            return False
+    except Exception as e:
+        print("WeasyPrint exception:", e)
+        return False
+    finally:
+        if os.path.exists(temp_html_path):
+            os.unlink(temp_html_path)
 
 def get_google_flow(state=None):
     """Create and return a Google OAuth flow object"""
@@ -622,13 +622,25 @@ def preview():
     form_data['formatted_joining_date'] = format_date(form_data.get('joining_date'))
 
     # --- RELIEVING DATE AND CERTIFICATE DATE LOGIC ---
+    # FIX: Handle relieving_date properly - ensure it's a date object
     relieving_date_raw = form_data.get('relieving_date')
+    
+    # Convert to date object if it's a string
     if relieving_date_raw and isinstance(relieving_date_raw, str):
         try:
-            form_data['relieving_date'] = datetime.strptime(relieving_date_raw, '%Y-%m-%d')
+            form_data['relieving_date'] = datetime.strptime(relieving_date_raw, '%Y-%m-%d').date()
         except ValueError:
-            pass
+            try:
+                # Try other common formats
+                form_data['relieving_date'] = datetime.strptime(relieving_date_raw, '%d/%m/%Y').date()
+            except ValueError:
+                form_data['relieving_date'] = None
+    elif relieving_date_raw and isinstance(relieving_date_raw, datetime):
+        form_data['relieving_date'] = relieving_date_raw.date()
+    elif relieving_date_raw and isinstance(relieving_date_raw, date):
+        form_data['relieving_date'] = relieving_date_raw
 
+    # If still no relieving date, try to get from employee
     if not form_data.get('relieving_date'):
         emp = Employee.query.filter_by(employee_id=form_data.get('employee_id')).first()
         if emp and emp.relieving_date:
@@ -636,22 +648,45 @@ def preview():
         elif form_data.get('resignation_date'):
             res_date = form_data['resignation_date']
             if isinstance(res_date, str):
-                res_date = datetime.strptime(res_date, '%Y-%m-%d')
+                res_date = datetime.strptime(res_date, '%Y-%m-%d').date()
+            elif isinstance(res_date, datetime):
+                res_date = res_date.date()
             form_data['relieving_date'] = res_date + timedelta(days=30)
 
-    # TOP DATE LOGIC
+    # TOP DATE LOGIC - FIXED: Ensure base_relieving is a date object
     base_relieving = form_data.get('relieving_date')
-    if base_relieving:
+    
+    if base_relieving and isinstance(base_relieving, (date, datetime)):
+        # It's already a date/datetime object, add timedelta
         form_data['top_date'] = base_relieving + timedelta(days=1)
+    elif base_relieving and isinstance(base_relieving, str):
+        # Try to parse the string
+        try:
+            base_relieving_date = datetime.strptime(base_relieving, '%Y-%m-%d').date()
+            form_data['top_date'] = base_relieving_date + timedelta(days=1)
+        except ValueError:
+            form_data['top_date'] = datetime.now().date()
     else:
-        form_data['top_date'] = datetime.now()
+        form_data['top_date'] = datetime.now().date()
 
     # Certificate Issue Date
-    base_date_for_cert = form_data.get('relieving_date') or datetime.now()
-    target_date = base_date_for_cert + timedelta(days=15)
-    if target_date.weekday() == 5:
+    base_date_for_cert = form_data.get('relieving_date')
+    
+    # Ensure base_date_for_cert is a date object
+    if base_date_for_cert and isinstance(base_date_for_cert, (date, datetime)):
+        base_date = base_date_for_cert
+    elif base_date_for_cert and isinstance(base_date_for_cert, str):
+        try:
+            base_date = datetime.strptime(base_date_for_cert, '%Y-%m-%d').date()
+        except ValueError:
+            base_date = datetime.now().date()
+    else:
+        base_date = datetime.now().date()
+    
+    target_date = base_date + timedelta(days=15)
+    if target_date.weekday() == 5:  # Saturday
         target_date += timedelta(days=2)
-    elif target_date.weekday() == 6:
+    elif target_date.weekday() == 6:  # Sunday
         target_date += timedelta(days=1)
     
     form_data['certificate_issue_date'] = target_date
