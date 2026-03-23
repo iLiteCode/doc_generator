@@ -115,7 +115,7 @@
         -ms-overflow-style: none;
     }
     .admin-content::-webkit-scrollbar {
-    display: none; 
+        display: none; 
     }
 
     /* Header */
@@ -189,8 +189,8 @@
         font-size: 24px;
     }
 
-    /* Employee Cards */
-    .employee-card {
+    /* Member Cards (Employees + Interns) */
+    .member-card {
         transition: transform 0.2s, box-shadow 0.2s;
         border: none;
         border-radius: 15px;
@@ -201,19 +201,26 @@
         flex-direction: column;
     }
 
-    .employee-card:hover {
+    .member-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 8px 15px rgba(0,0,0,0.2);
     }
 
-    .card-header {
+    .card-header-employee {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         padding: 20px;
         position: relative;
     }
 
-    .employee-avatar {
+    .card-header-intern {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 20px;
+        position: relative;
+    }
+
+    .member-avatar {
         width: 60px;
         height: 60px;
         border-radius: 50%;
@@ -237,6 +244,7 @@
     .status-active { background-color: #28a745; color: white; }
     .status-resigned { background-color: #dc3545; color: white; }
     .status-terminated { background-color: #6c757d; color: white; }
+    .status-completed { background-color: #17a2b8; color: white; }
 
     .info-row {
         display: flex;
@@ -281,6 +289,8 @@
     .btn-experience { background-color: #36b9cc; color: white; }
     .btn-increment { background-color: #f6c23e; color: white; }
     .btn-relieving { background-color: #e74a3b; color: white; }
+    .btn-intern-offer { background-color: #28a745; color: white; }
+    .btn-intern-certificate { background-color: #20c997; color: white; }
     .btn-danger { background-color: #dc3545; color: white; }
     .btn-danger:hover { background-color: #c82333; }
 
@@ -366,8 +376,8 @@
         box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
     }
 
-    /* Employee Selector (Document Generator) */
-    .employee-selector {
+    /* Member Selector (Document Generator) */
+    .member-selector {
         background: white;
         padding: 30px;
         border-radius: 10px;
@@ -375,14 +385,14 @@
         margin-bottom: 30px;
     }
 
-    .employee-list {
+    .member-list {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
         gap: 15px;
         margin-top: 20px;
     }
 
-    .employee-select-item {
+    .member-select-item {
         background: #f8f9fa;
         border: 2px solid transparent;
         border-radius: 8px;
@@ -391,19 +401,29 @@
         transition: all 0.3s;
     }
 
-    .employee-select-item:hover {
+    .member-select-item:hover {
         border-color: #667eea;
         transform: translateY(-2px);
         box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
 
-    .employee-select-item.selected {
+    .member-select-item.selected {
         border-color: #28a745;
         background: #f0fff4;
     }
 
-    .employee-select-item h5 { margin: 0 0 5px; color: #333; }
-    .employee-select-item p { margin: 0; color: #6c757d; font-size: 13px; }
+    .member-select-item h5 { margin: 0 0 5px; color: #333; }
+    .member-select-item p { margin: 0; color: #6c757d; font-size: 13px; }
+    .member-type-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: bold;
+        margin-top: 5px;
+    }
+    .member-type-employee { background: #667eea; color: white; }
+    .member-type-intern { background: #28a745; color: white; }
 
     .document-type-grid {
         display: grid;
@@ -474,6 +494,31 @@
     .pay-btn:hover { background: #218838; transform: translateY(-1px); }
     .pay-btn:disabled { background: #6c757d; cursor: not-allowed; }
 
+    /* Tab Buttons */
+    .member-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    .member-tab {
+        padding: 10px 20px;
+        background: none;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        color: #6c757d;
+    }
+    .member-tab.active {
+        color: #667eea;
+        border-bottom: 2px solid #667eea;
+        margin-bottom: -2px;
+    }
+    .member-tab:hover {
+        color: #667eea;
+    }
+
     /* ==================== RESPONSIVE STYLES ==================== */
     @media (max-width: 992px) {
         .admin-sidebar {
@@ -515,7 +560,7 @@
         .form-row {
             grid-template-columns: 1fr;
         }
-        .employee-list, .document-type-grid {
+        .member-list, .document-type-grid {
             grid-template-columns: 1fr;
         }
         .payment-table {
@@ -535,7 +580,7 @@
             padding: 8px 12px;
             font-size: 13px;
         }
-        .employee-select-item {
+        .member-select-item {
             padding: 12px;
         }
     }
@@ -560,17 +605,17 @@
                     <span>Dashboard Overview</span>
                 </a>
             </li>
-            <li class="{{ 'active' if active_tab == 'add_employee' else '' }}">
-                <a href="{{ url_for('admin_dashboard', tab='add_employee') }}">
+            <li class="{{ 'active' if active_tab == 'add_member' else '' }}">
+                <a href="{{ url_for('admin_dashboard', tab='add_member') }}">
                     <i class="fas fa-user-plus"></i>
-                    <span>Add Employee</span>
+                    <span>Add Member</span>
                 </a>
             </li>
-            <li class="{{ 'active' if active_tab == 'employees' else '' }}">
-                <a href="{{ url_for('admin_dashboard', tab='employees') }}">
+            <li class="{{ 'active' if active_tab == 'members' else '' }}">
+                <a href="{{ url_for('admin_dashboard', tab='members') }}">
                     <i class="fas fa-users"></i>
-                    <span>Employee Dashboard</span>
-                    <span class="badge-count">{{ employees|length }}</span>
+                    <span>Members Dashboard</span>
+                    <span class="badge-count">{{ employees|length + interns|length }}</span>
                 </a>
             </li>
             <li class="{{ 'active' if active_tab == 'document_generator' else '' }}">
@@ -597,15 +642,15 @@
 
     <!-- Main Content -->
     <div class="admin-content">
-        <!-- Header (single header-actions) -->
+        <!-- Header -->
         <div class="content-header">
             <h2>
                 {% if active_tab == 'dashboard' %}
                     Dashboard Overview
-                {% elif active_tab == 'add_employee' %}
-                    Add New Employee
-                {% elif active_tab == 'employees' %}
-                    Employee Dashboard
+                {% elif active_tab == 'add_member' %}
+                    Add New Member
+                {% elif active_tab == 'members' %}
+                    Members Dashboard
                 {% elif active_tab == 'document_generator' %}
                     Document Generator
                 {% elif active_tab == 'payments' %}
@@ -641,8 +686,17 @@
             </div>
             <div class="stat-card">
                 <div class="stat-info">
-                    <h3>Active Employees</h3>
-                    <div class="number">{{ employees|selectattr('employee.status', 'equalto', 'active')|list|length }}</div>
+                    <h3>Total Interns</h3>
+                    <div class="number">{{ interns|length }}</div>
+                </div>
+                <div class="stat-icon" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <h3>Active Members</h3>
+                    <div class="number">{{ (employees|selectattr('employee.status', 'equalto', 'active')|list|length) + (interns|selectattr('status', 'equalto', 'active')|list|length) }}</div>
                 </div>
                 <div class="stat-icon" style="background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);">
                     <i class="fas fa-user-check"></i>
@@ -664,17 +718,26 @@
             <div class="col-md-6">
                 <div class="form-container">
                     <div class="form-title"><h3>Recent Employees</h3></div>
-                    <div class="employee-list" style="max-height: 400px; overflow-y: auto;">
+                    <div class="member-list" style="max-height: 400px; overflow-y: auto;">
                         <script>
-                            function goToDocumentGenerator(empId) {
-                                window.location.href = "{{ url_for('admin_dashboard', tab='document_generator') }}" + "&emp_id=" + empId;
+                            function goToDocumentGenerator(memberId, memberType) {
+                                window.location.href = "{{ url_for('admin_dashboard', tab='document_generator') }}" + "&member_id=" + memberId + "&member_type=" + memberType;
                             }
                         </script>
                         {% for item in employees[:5] %}
-                        <div class="employee-select-item" onclick="goToDocumentGenerator('{{ item.employee.id }}')">
+                        <div class="member-select-item" onclick="goToDocumentGenerator('{{ item.employee.id }}', 'employee')">
                             <h5>{{ item.employee.full_name }}</h5>
                             <p>{{ item.employee.designation }} | {{ item.employee.employee_id }}</p>
                             <small class="text-muted">Joined: {{ item.employee.joining_date.strftime('%d %b %Y') if item.employee.joining_date else 'N/A' }}</small>
+                            <span class="member-type-badge member-type-employee">Employee</span>
+                        </div>
+                        {% endfor %}
+                        {% for intern in interns[:5] %}
+                        <div class="member-select-item" onclick="goToDocumentGenerator('{{ intern.id }}', 'intern')">
+                            <h5>{{ intern.full_name }}</h5>
+                            <p>{{ intern.qualification or 'Intern' }} | {{ intern.intern_id }}</p>
+                            <small class="text-muted">Started: {{ intern.start_date.strftime('%d %b %Y') if intern.start_date else 'N/A' }}</small>
+                            <span class="member-type-badge member-type-intern">Intern</span>
                         </div>
                         {% endfor %}
                     </div>
@@ -700,98 +763,511 @@
         </div>
         {% endif %}
 
-        <!-- Add Employee Tab -->
-        {% if active_tab == 'add_employee' %}
+        <!-- Add Member Tab (Employee + Intern) -->
+        {% if active_tab == 'add_member' %}
         <div class="form-container">
-            <div class="form-title"><h3>Add New Employee</h3></div>
-            <form method="POST" action="{{ url_for('add_employee') }}" enctype="multipart/form-data">
-                <div class="form-row">
-                    <div class="form-group"><label>Full Name *</label><input type="text" name="full_name" class="form-control" required></div>
-                    <div class="form-group"><label>Email</label><input type="email" name="email" class="form-control"></div>
+            <div class="form-title"><h3>Add New Member</h3></div>
+            
+            <!-- Member Type Selection -->
+            <div class="mb-4">
+                <label class="form-label fw-bold">Member Type</label>
+                <div class="btn-group w-100" role="group">
+                    <input type="radio" class="btn-check" name="member_type" id="employee_type" value="employee" autocomplete="off" checked>
+                    <label class="btn btn-outline-primary" for="employee_type">👨‍💼 Employee</label>
+                    
+                    <input type="radio" class="btn-check" name="member_type" id="intern_type" value="intern" autocomplete="off">
+                    <label class="btn btn-outline-success" for="intern_type">🎓 Intern</label>
                 </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Phone</label><input type="text" name="phone" class="form-control"></div>
-                    <div class="form-group">
-                        <label>Gender</label>
-                        <select name="gender" class="form-control">
+            </div>
+            
+            <!-- Employee Form -->
+            <form method="POST" action="{{ url_for('add_employee') }}" enctype="multipart/form-data" id="employeeForm">
+                <div class="row">
+                    <!-- Personal Information -->
+                    <div class="col-12">
+                        <h5 class="text-primary">Personal Information</h5>
+                        <hr>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Full Name *</label>
+                        <input type="text" name="full_name" class="form-control" required>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Phone</label>
+                        <input type="text" name="phone" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Gender</label>
+                        <select name="gender" class="form-select">
                             <option value="Male">Male</option>
                             <option value="Female">Female</option>
                             <option value="Other">Other</option>
                         </select>
                     </div>
-                    <div class="form-group"><label>Designation *</label><input type="text" name="designation" class="form-control" required></div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Aadhar Number</label>
+                        <input type="text" name="aadhar_no" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">PAN Number</label>
+                        <input type="text" name="pan_no" class="form-control">
+                    </div>
+                    
+                    <div class="col-12 mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea name="address" class="form-control" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Profile Photo</label>
+                        <input type="file" name="profile_image" class="form-control" accept="image/*">
+                    </div>
+                    
+                    <!-- Employment Information (Employee Only) -->
+                    <div class="col-12 employee-only mt-3">
+                        <h5 class="text-primary">Employment Information</h5>
+                        <hr>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3 employee-only">
+                        <label class="form-label">Designation *</label>
+                        <input type="text" name="designation" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3 employee-only">
+                        <label class="form-label">Department</label>
+                        <input type="text" name="department" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3 employee-only">
+                        <label class="form-label">CTC (Annual)</label>
+                        <input type="number" name="ctc" class="form-control" step="0.01">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3 employee-only">
+                        <label class="form-label">Increment per Month</label>
+                        <input type="number" name="increment_per_month" class="form-control" step="0.01">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="active">Active</option>
+                            <option value="resigned">Resigned</option>
+                            <option value="terminated">Terminated</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Joining Date</label>
+                        <input type="date" name="joining_date" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Resignation Date</label>
+                        <input type="date" name="resignation_date" class="form-control">
+                    </div>
+                    
+                    <!-- Intern Information (Intern Only) -->
+                    <div class="col-12 intern-only mt-3" style="display: none;">
+                        <h5 class="text-success">Internship Information</h5>
+                        <hr>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Qualification</label>
+                        <input type="text" name="qualification" class="form-control" placeholder="e.g., B.Tech, MCA">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">College/University Name</label>
+                        <input type="text" name="college_name" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Course</label>
+                        <input type="text" name="course" class="form-control" placeholder="e.g., Computer Science">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Specialization</label>
+                        <input type="text" name="specialization" class="form-control" placeholder="e.g., Web Development">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Internship Duration (months)</label>
+                        <input type="number" name="internship_duration" class="form-control" value="3">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Stipend (per month)</label>
+                        <input type="number" name="stipend" class="form-control" step="0.01">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="start_date" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Mentor Name</label>
+                        <input type="text" name="mentor_name" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Mentor Designation</label>
+                        <input type="text" name="mentor_designation" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-12 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Company</label>
+                        <select name="company_id" class="form-select">
+                            <option value="">Select Company</option>
+                            {% for company in companies %}
+                            <option value="{{ company.id }}">{{ company.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Bank Details -->
+                    <div class="col-12 mt-3">
+                        <h5 class="text-primary">Bank Details</h5>
+                        <hr>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Account Holder Name</label>
+                        <input type="text" name="account_holder" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Account Number</label>
+                        <input type="text" name="account_number" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Bank Name</label>
+                        <input type="text" name="bank_name" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Branch</label>
+                        <input type="text" name="branch" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">IFSC Code</label>
+                        <input type="text" name="ifsc_code" class="form-control">
+                    </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Department</label><input type="text" name="department" class="form-control"></div>
-                    <div class="form-group"><label>CTC (Annual)</label><input type="number" name="ctc" class="form-control" step="0.01"></div>
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn-submit" id="submitBtn">Save Employee</button>
+                    <a href="{{ url_for('admin_dashboard', tab='members') }}" class="btn btn-secondary">Cancel</a>
                 </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Aadhar Number</label><input type="text" name="aadhar_no" class="form-control"></div>
-                    <div class="form-group"><label>PAN Number</label><input type="text" name="pan_no" class="form-control"></div>
+            </form>
+            
+            <!-- Intern Form (Separate) -->
+            <form method="POST" action="{{ url_for('add_intern') }}" enctype="multipart/form-data" id="internForm" style="display: none;">
+                <div class="row">
+                    <!-- Personal Information -->
+                    <div class="col-12">
+                        <h5 class="text-primary">Personal Information</h5>
+                        <hr>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Full Name *</label>
+                        <input type="text" name="full_name" class="form-control" required>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Phone</label>
+                        <input type="text" name="phone" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Gender</label>
+                        <select name="gender" class="form-select">
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Aadhar Number</label>
+                        <input type="text" name="aadhar_no" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">PAN Number</label>
+                        <input type="text" name="pan_no" class="form-control">
+                    </div>
+                    
+                    <div class="col-12 mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea name="address" class="form-control" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Profile Photo</label>
+                        <input type="file" name="profile_image" class="form-control" accept="image/*">
+                    </div>
+                    
+                    <!-- Intern Information -->
+                    <div class="col-12 mt-3">
+                        <h5 class="text-success">Internship Information</h5>
+                        <hr>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Qualification</label>
+                        <input type="text" name="qualification" class="form-control" placeholder="e.g., B.Tech, MCA">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">College/University Name</label>
+                        <input type="text" name="college_name" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Course</label>
+                        <input type="text" name="course" class="form-control" placeholder="e.g., Computer Science">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Specialization</label>
+                        <input type="text" name="specialization" class="form-control" placeholder="e.g., Web Development">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Internship Duration (months)</label>
+                        <input type="number" name="internship_duration" class="form-control" value="3">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Stipend (per month)</label>
+                        <input type="number" name="stipend" class="form-control" step="0.01">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="start_date" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Mentor Name</label>
+                        <input type="text" name="mentor_name" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Mentor Designation</label>
+                        <input type="text" name="mentor_designation" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="active">Active</option>
+                            <option value="completed">Completed</option>
+                            <option value="terminated">Terminated</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Company</label>
+                        <select name="company_id" class="form-select" required>
+                            <option value="">Select Company</option>
+                            {% for company in companies %}
+                            <option value="{{ company.id }}">{{ company.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Bank Details -->
+                    <div class="col-12 mt-3">
+                        <h5 class="text-primary">Bank Details</h5>
+                        <hr>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Account Holder Name</label>
+                        <input type="text" name="account_holder" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Account Number</label>
+                        <input type="text" name="account_number" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Bank Name</label>
+                        <input type="text" name="bank_name" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Branch</label>
+                        <input type="text" name="branch" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">IFSC Code</label>
+                        <input type="text" name="ifsc_code" class="form-control">
+                    </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Joining Date</label><input type="date" name="joining_date" class="form-control"></div>
-                    <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="active">Active</option><option value="resigned">Resigned</option><option value="terminated">Terminated</option></select></div>
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn-submit">Save Intern</button>
+                    <a href="{{ url_for('admin_dashboard', tab='members') }}" class="btn btn-secondary">Cancel</a>
                 </div>
-                <div class="form-group"><label>Address</label><textarea name="address" class="form-control" rows="2"></textarea></div>
-                <div class="form-group"><label>Profile Photo</label><input type="file" name="profile_image" class="form-control" accept="image/*"></div>
-                <h5 style="margin:20px 0 15px;">Bank Details</h5>
-                <div class="form-row">
-                    <div class="form-group"><label>Account Holder</label><input type="text" name="account_holder" class="form-control"></div>
-                    <div class="form-group"><label>Account Number</label><input type="text" name="account_number" class="form-control"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Bank Name</label><input type="text" name="bank_name" class="form-control"></div>
-                    <div class="form-group"><label>IFSC Code</label><input type="text" name="ifsc_code" class="form-control"></div>
-                </div>
-                <button type="submit" class="btn-submit">Add Employee</button>
             </form>
         </div>
+        
+        <script>
+            // Toggle between Employee and Intern forms
+            const employeeType = document.getElementById('employee_type');
+            const internType = document.getElementById('intern_type');
+            const employeeForm = document.getElementById('employeeForm');
+            const internForm = document.getElementById('internForm');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            function toggleForms() {
+                if (employeeType.checked) {
+                    employeeForm.style.display = 'block';
+                    internForm.style.display = 'none';
+                } else {
+                    employeeForm.style.display = 'none';
+                    internForm.style.display = 'block';
+                }
+            }
+            
+            employeeType.addEventListener('change', toggleForms);
+            internType.addEventListener('change', toggleForms);
+            toggleForms();
+        </script>
         {% endif %}
 
-        <!-- Employee Dashboard Tab -->
-        {% if active_tab == 'employees' %}
+        <!-- Members Dashboard Tab (Employees + Interns) -->
+        {% if active_tab == 'members' %}
         <div class="filter-bar">
             <div class="row">
-                <div class="col-md-4"><input type="text" class="form-control" id="searchInput" placeholder="🔍 Search by name, ID, or designation..."></div>
-                <div class="col-md-3"><select class="form-select" id="statusFilter"><option value="all">All Status</option><option value="active">Active</option><option value="resigned">Resigned</option><option value="terminated">Terminated</option></select></div>
-                <div class="col-md-3"><select class="form-select" id="departmentFilter"><option value="all">All Departments</option>{% set departments = [] %}{% for item in employees %}{% if item.employee.department and item.employee.department not in departments %}{% set departments = departments.append(item.employee.department) %}<option value="{{ item.employee.department }}">{{ item.employee.department }}</option>{% endif %}{% endfor %}</select></div>
-                <div class="col-md-2"><button class="btn btn-secondary w-100" onclick="resetFilters()"><i class="fas fa-undo"></i> Reset</button></div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" id="searchInput" placeholder="🔍 Search by name, ID...">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="memberTypeFilter">
+                        <option value="all">All Members</option>
+                        <option value="employee">Employees</option>
+                        <option value="intern">Interns</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="statusFilter">
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="resigned">Resigned</option>
+                        <option value="completed">Completed</option>
+                        <option value="terminated">Terminated</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-secondary w-100" onclick="resetFilters()">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="row" id="employeeGrid">
+        <div class="row" id="memberGrid">
+            <!-- Employees -->
             {% for item in employees %}
-            <div class="col-xl-4 col-lg-6 col-md-6 mb-4 employee-card-wrapper" 
+            <div class="col-xl-4 col-lg-6 col-md-6 mb-4 member-card-wrapper" 
                  data-name="{{ item.employee.full_name|lower }}"
                  data-id="{{ item.employee.employee_id|lower }}"
-                 data-designation="{{ item.employee.designation|lower }}"
+                 data-type="employee"
                  data-status="{{ item.employee.status }}"
                  data-department="{{ item.employee.department|lower }}">
-                <div class="card employee-card">
-                    <div class="card-header text-center">
+                <div class="card member-card">
+                    <div class="card-header-employee text-center">
                         <span class="status-badge status-{{ item.employee.status }}">{{ item.employee.status|upper }}</span>
                         {% if item.employee.profile_image %}
-                            <img src="{{ url_for('serve_profile_image', filename=item.employee.profile_image) }}" class="employee-avatar" alt="{{ item.employee.full_name }}">
+                            <img src="{{ url_for('serve_profile_image', filename=item.employee.profile_image) }}" class="member-avatar" alt="{{ item.employee.full_name }}">
                         {% else %}
-                            <div class="employee-avatar" style="background:#6c757d; display:flex; align-items:center; justify-content:center; font-size:24px; color:white;">{{ item.employee.full_name[:1] }}</div>
+                            <div class="member-avatar" style="background:#6c757d; display:flex; align-items:center; justify-content:center; font-size:24px; color:white;">{{ item.employee.full_name[:1] }}</div>
                         {% endif %}
                         <h5 class="mt-2 mb-0 text-white" style="font-size:16px;">{{ item.employee.full_name }}</h5>
                         <p class="text-white-50 mb-0" style="font-size:12px;">{{ item.employee.employee_id }}</p>
+                        <span class="badge bg-light text-dark mt-2">Employee</span>
                     </div>
                     <div class="card-body">
                         <div class="info-row"><span class="info-label">💼 Designation</span><span class="info-value">{{ item.employee.designation }}</span></div>
                         <div class="info-row"><span class="info-label">💰 CTC</span><span class="info-value">₹{{ "{:,.0f}".format(item.employee.ctc) }}</span></div>
-                        <div class="info-row"><span class="info-label">📈 Increment</span><span class="info-value">{% if item.employee.increment_per_month and item.employee.increment_per_month > 0 %}+₹{{ "{:,.0f}".format(item.employee.increment_per_month) }}{% else %}-{% endif %}</span></div>
                         <div class="info-row"><span class="info-label">📅 Joined</span><span class="info-value">{{ item.employee.joining_date.strftime('%d %b %Y') if item.employee.joining_date else 'N/A' }}</span></div>
                         <div class="text-center mt-3"><span class="document-badge">📄 {{ item.document_count }} Documents</span></div>
                         <div class="mt-3">
                             <div class="row g-2">
-                                <div class="col-6"><a href="{{ url_for('admin_dashboard', tab='document_generator', emp_id=item.employee.id) }}" class="btn action-btn btn-offer btn-sm w-100">📄 Generate Docs</a></div>
+                                <div class="col-6"><a href="{{ url_for('admin_dashboard', tab='document_generator', member_id=item.employee.id, member_type='employee') }}" class="btn action-btn btn-offer btn-sm w-100">📄 Generate Docs</a></div>
                                 <div class="col-6"><a href="{{ url_for('view_employee', emp_id=item.employee.id) }}" class="btn action-btn btn-secondary btn-sm w-100">👁️ View</a></div>
                                 <div class="col-12">
                                     <form action="{{ url_for('delete_employee', emp_id=item.employee.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this employee?');">
-                                        <button type="submit" class="btn action-btn btn-danger btn-sm w-100">🗑️ Delete Employee</button>
+                                        <button type="submit" class="btn action-btn btn-danger btn-sm w-100">🗑️ Delete</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <!-- Interns -->
+            {% for intern in interns %}
+            <div class="col-xl-4 col-lg-6 col-md-6 mb-4 member-card-wrapper" 
+                 data-name="{{ intern.full_name|lower }}"
+                 data-id="{{ intern.intern_id|lower }}"
+                 data-type="intern"
+                 data-status="{{ intern.status }}">
+                <div class="card member-card">
+                    <div class="card-header-intern text-center">
+                        <span class="status-badge status-{{ intern.status }}">{{ intern.status|upper }}</span>
+                        {% if intern.profile_image %}
+                            <img src="{{ url_for('serve_profile_image', filename=intern.profile_image) }}" class="member-avatar" alt="{{ intern.full_name }}">
+                        {% else %}
+                            <div class="member-avatar" style="background:#28a745; display:flex; align-items:center; justify-content:center; font-size:24px; color:white;">{{ intern.full_name[:1] }}</div>
+                        {% endif %}
+                        <h5 class="mt-2 mb-0 text-white" style="font-size:16px;">{{ intern.full_name }}</h5>
+                        <p class="text-white-50 mb-0" style="font-size:12px;">{{ intern.intern_id }}</p>
+                        <span class="badge bg-light text-dark mt-2">Intern</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-row"><span class="info-label">🎓 Qualification</span><span class="info-value">{{ intern.qualification or 'N/A' }}</span></div>
+                        <div class="info-row"><span class="info-label">🏫 College</span><span class="info-value">{{ intern.college_name or 'N/A' }}</span></div>
+                        <div class="info-row"><span class="info-label">💰 Stipend</span><span class="info-value">₹{{ "{:,.0f}".format(intern.stipend) }}</span></div>
+                        <div class="info-row"><span class="info-label">📅 Started</span><span class="info-value">{{ intern.start_date.strftime('%d %b %Y') if intern.start_date else 'N/A' }}</span></div>
+                        <div class="text-center mt-3"><span class="document-badge">📄 {{ intern.documents|length if intern.documents else 0 }} Documents</span></div>
+                        <div class="mt-3">
+                            <div class="row g-2">
+                                <div class="col-6"><a href="{{ url_for('admin_dashboard', tab='document_generator', member_id=intern.id, member_type='intern') }}" class="btn action-btn btn-intern-offer btn-sm w-100">📄 Generate Docs</a></div>
+                                <div class="col-6"><a href="{{ url_for('view_intern', intern_id=intern.id) }}" class="btn action-btn btn-secondary btn-sm w-100">👁️ View</a></div>
+                                <div class="col-12">
+                                    <form action="{{ url_for('delete_intern', intern_id=intern.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this intern?');">
+                                        <button type="submit" class="btn action-btn btn-danger btn-sm w-100">🗑️ Delete</button>
                                     </form>
                                 </div>
                             </div>
@@ -805,53 +1281,76 @@
 
         <!-- Document Generator Tab -->
         {% if active_tab == 'document_generator' %}
-        <div class="employee-selector">
-            <h4 style="margin-bottom:20px;">Step 1: Select Employee</h4>
-            <div class="employee-list" id="employeeSelectList">
+        <div class="member-selector">
+            <h4 style="margin-bottom:20px;">Step 1: Select Member</h4>
+            <div class="member-list" id="memberSelectList">
                 {% for item in employees %}
-                <div class="employee-select-item {% if selected_emp_id == item.employee.id %}selected{% endif %}" 
-                     onclick="selectEmployee('{{ item.employee.id }}')" data-id="{{ item.employee.id }}">
+                <div class="member-select-item {% if selected_member_id == item.employee.id and selected_member_type == 'employee' %}selected{% endif %}" 
+                     onclick="selectMember('{{ item.employee.id }}', 'employee')" data-id="{{ item.employee.id }}" data-type="employee">
                     <h5>{{ item.employee.full_name }}</h5>
                     <p>{{ item.employee.designation }} | {{ item.employee.employee_id }}</p>
                     <small class="text-muted">CTC: ₹{{ "{:,.0f}".format(item.employee.ctc) }}</small>
+                    <span class="member-type-badge member-type-employee">Employee</span>
+                </div>
+                {% endfor %}
+                {% for intern in interns %}
+                <div class="member-select-item {% if selected_member_id == intern.id and selected_member_type == 'intern' %}selected{% endif %}" 
+                     onclick="selectMember('{{ intern.id }}', 'intern')" data-id="{{ intern.id }}" data-type="intern">
+                    <h5>{{ intern.full_name }}</h5>
+                    <p>{{ intern.qualification or 'Intern' }} | {{ intern.intern_id }}</p>
+                    <small class="text-muted">Stipend: ₹{{ "{:,.0f}".format(intern.stipend) }}</small>
+                    <span class="member-type-badge member-type-intern">Intern</span>
                 </div>
                 {% endfor %}
             </div>
         </div>
 
-        {% if selected_emp_id %}
-        <div class="employee-selector">
+        {% if selected_member_id %}
+        <div class="member-selector">
             <h4 style="margin-bottom:20px;">Step 2: Select Document Type</h4>
+            
+            {% if selected_member_type == 'employee' %}
             <div class="document-type-grid">
-                <div class="document-type-card" data-emp-id="{{ selected_emp_id }}" onclick="generateDocument(this.dataset.empId, 'offer_letter')"><i class="fas fa-file-alt"></i><h6>Offer Letter</h6></div>
-                <div class="document-type-card" data-emp-id="{{ selected_emp_id }}" onclick="generateDocument(this.dataset.empId, 'salary_slip')"><i class="fas fa-money-bill-wave"></i><h6>Salary Slip</h6></div>
-                <div class="document-type-card" data-emp-id="{{ selected_emp_id }}" onclick="generateDocument(this.dataset.empId, 'experience_letter')"><i class="fas fa-graduation-cap"></i><h6>Experience Letter</h6></div>
-                <div class="document-type-card" data-emp-id="{{ selected_emp_id }}" onclick="generateDocument(this.dataset.empId, 'increment_letter')"><i class="fas fa-chart-line"></i><h6>Increment Letter</h6></div>
-                <div class="document-type-card" data-emp-id="{{ selected_emp_id }}" onclick="generateDocument(this.dataset.empId, 'relieving_letter')"><i class="fas fa-door-open"></i><h6>Relieving Letter</h6></div>
+                <div class="document-type-card" onclick="generateDocument('{{ selected_member_id }}', 'offer_letter', 'employee')"><i class="fas fa-file-alt"></i><h6>Offer Letter</h6></div>
+                <div class="document-type-card" onclick="generateDocument('{{ selected_member_id }}', 'salary_slip', 'employee')"><i class="fas fa-money-bill-wave"></i><h6>Salary Slip</h6></div>
+                <div class="document-type-card" onclick="generateDocument('{{ selected_member_id }}', 'experience_letter', 'employee')"><i class="fas fa-graduation-cap"></i><h6>Experience Letter</h6></div>
+                <div class="document-type-card" onclick="generateDocument('{{ selected_member_id }}', 'increment_letter', 'employee')"><i class="fas fa-chart-line"></i><h6>Increment Letter</h6></div>
+                <div class="document-type-card" onclick="generateDocument('{{ selected_member_id }}', 'relieving_letter', 'employee')"><i class="fas fa-door-open"></i><h6>Relieving Letter</h6></div>
             </div>
+            {% else %}
+            <div class="document-type-grid">
+                <div class="document-type-card" onclick="generateDocument('{{ selected_member_id }}', 'intern_offer_letter', 'intern')"><i class="fas fa-file-contract"></i><h6>Intern Offer Letter</h6></div>
+                <div class="document-type-card" onclick="generateDocument('{{ selected_member_id }}', 'certificate_of_internship', 'intern')"><i class="fas fa-award"></i><h6>Certificate of Internship</h6></div>
+            </div>
+            {% endif %}
         </div>
 
         <script>
-            function selectEmployee(empId) {
-                window.location.href = "{{ url_for('admin_dashboard', tab='document_generator') }}" + "&emp_id=" + empId;
+            function selectMember(memberId, memberType) {
+                window.location.href = "{{ url_for('admin_dashboard', tab='document_generator') }}" + "&member_id=" + memberId + "&member_type=" + memberType;
             }
 
-            function generateDocument(empId, docType) {
-                if (docType === 'salary_slip') {
-                    window.location.href = "{{ url_for('admin_generate_document', emp_id=0, doc_type='salary_slip') }}".replace('0', empId);
+            function generateDocument(memberId, docType, memberType) {
+                if (memberType === 'employee') {
+                    if (docType === 'salary_slip') {
+                        window.location.href = "{{ url_for('admin_generate_document', emp_id=0, doc_type='salary_slip') }}".replace('0', memberId);
+                    } else {
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = "{{ url_for('admin_generate_document', emp_id=0, doc_type='') }}".replace('0', memberId) + docType;
+                        form.target = '_blank';
+                        const companyInput = document.createElement('input');
+                        companyInput.type = 'hidden';
+                        companyInput.name = 'company';
+                        companyInput.value = 'company1';
+                        form.appendChild(companyInput);
+                        document.body.appendChild(form);
+                        form.submit();
+                        document.body.removeChild(form);
+                    }
                 } else {
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = "{{ url_for('admin_generate_document', emp_id=0, doc_type='') }}".replace('0', empId) + docType;
-                    form.target = '_blank';
-                    const companyInput = document.createElement('input');
-                    companyInput.type = 'hidden';
-                    companyInput.name = 'company';
-                    companyInput.value = 'company1';
-                    form.appendChild(companyInput);
-                    document.body.appendChild(form);
-                    form.submit();
-                    document.body.removeChild(form);
+                    // Intern document generation
+                    window.location.href = "{{ url_for('generate_intern_document', intern_id=0, doc_type='') }}".replace('0', memberId) + docType;
                 }
             }
         </script>
@@ -861,7 +1360,7 @@
         <!-- Payments Tab -->
         {% if active_tab == 'payments' %}
         <div class="payment-table">
-            <table>
+            <table class="table">
                 <thead>
                     <tr>
                         <th>Employee</th>
@@ -904,19 +1403,19 @@
     </div>
 </div>
 
-<!-- JavaScript for Filtering, Document Generator, Payments (unchanged) -->
 <script>
-    function selectEmployee(empId) {
-        window.location.href = "{{ url_for('admin_dashboard', tab='document_generator') }}" + "&emp_id=" + empId;
+    function selectMember(memberId, memberType) {
+        window.location.href = "{{ url_for('admin_dashboard', tab='document_generator') }}" + "&member_id=" + memberId + "&member_type=" + memberType;
     }
 
-    function generateDocument(empId, docType) {
+    function generateDocument(memberId, docType, memberType) {
+    if (memberType === 'employee') {
         if (docType === 'salary_slip') {
-            window.location.href = "{{ url_for('admin_generate_document', emp_id=0, doc_type='salary_slip') }}".replace('0', empId);
+            window.location.href = "{{ url_for('admin_generate_document', emp_id=0, doc_type='salary_slip') }}".replace('0', memberId);
         } else {
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = "{{ url_for('admin_generate_document', emp_id=0, doc_type='') }}".replace('0', empId) + docType;
+            form.action = "{{ url_for('admin_generate_document', emp_id=0, doc_type='') }}".replace('0', memberId) + docType;
             form.target = '_blank';
             const companyInput = document.createElement('input');
             companyInput.type = 'hidden';
@@ -927,7 +1426,16 @@
             form.submit();
             document.body.removeChild(form);
         }
+    } else {
+        // For interns: Use form POST to set session and redirect
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{{ url_for('set_intern_preview', intern_id=0, doc_type='') }}".replace('0', memberId) + docType;
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
     }
+}
 
     function processPayment(paymentId) {
         if (confirm('Mark this payment as paid?')) {
@@ -946,41 +1454,40 @@
         }
     }
 
-    function filterEmployees() {
+    function filterMembers() {
         const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+        const memberTypeFilter = document.getElementById('memberTypeFilter')?.value || 'all';
         const statusFilter = document.getElementById('statusFilter')?.value || 'all';
-        const departmentFilter = document.getElementById('departmentFilter')?.value.toLowerCase() || 'all';
-        const cards = document.querySelectorAll('.employee-card-wrapper');
+        const cards = document.querySelectorAll('.member-card-wrapper');
         cards.forEach(card => {
             const name = card.dataset.name;
-            const empId = card.dataset.id;
-            const designation = card.dataset.designation;
+            const memberId = card.dataset.id;
+            const memberType = card.dataset.type;
             const status = card.dataset.status;
-            const department = card.dataset.department;
-            const matchesSearch = searchTerm === '' || name.includes(searchTerm) || empId.includes(searchTerm) || designation.includes(searchTerm);
+            const matchesSearch = searchTerm === '' || name.includes(searchTerm) || memberId.includes(searchTerm);
+            const matchesType = memberTypeFilter === 'all' || memberType === memberTypeFilter;
             const matchesStatus = statusFilter === 'all' || status === statusFilter;
-            const matchesDepartment = departmentFilter === 'all' || department === departmentFilter;
-            card.style.display = (matchesSearch && matchesStatus && matchesDepartment) ? 'block' : 'none';
+            card.style.display = (matchesSearch && matchesType && matchesStatus) ? 'block' : 'none';
         });
     }
 
     function resetFilters() {
         const searchInput = document.getElementById('searchInput');
+        const memberTypeFilter = document.getElementById('memberTypeFilter');
         const statusFilter = document.getElementById('statusFilter');
-        const departmentFilter = document.getElementById('departmentFilter');
         if (searchInput) searchInput.value = '';
+        if (memberTypeFilter) memberTypeFilter.value = 'all';
         if (statusFilter) statusFilter.value = 'all';
-        if (departmentFilter) departmentFilter.value = 'all';
-        filterEmployees();
+        filterMembers();
     }
 
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('searchInput');
+        const memberTypeFilter = document.getElementById('memberTypeFilter');
         const statusFilter = document.getElementById('statusFilter');
-        const departmentFilter = document.getElementById('departmentFilter');
-        if (searchInput) searchInput.addEventListener('keyup', filterEmployees);
-        if (statusFilter) statusFilter.addEventListener('change', filterEmployees);
-        if (departmentFilter) departmentFilter.addEventListener('change', filterEmployees);
+        if (searchInput) searchInput.addEventListener('keyup', filterMembers);
+        if (memberTypeFilter) memberTypeFilter.addEventListener('change', filterMembers);
+        if (statusFilter) statusFilter.addEventListener('change', filterMembers);
     });
 </script>
 {% endblock %}

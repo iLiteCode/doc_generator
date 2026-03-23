@@ -8,7 +8,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
-from flask import Flask, flash, render_template, request, redirect, url_for, session, send_file, send_from_directory
+from flask import Flask, flash, jsonify, render_template, request, redirect, url_for, session, send_file, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.utils import secure_filename
@@ -188,6 +188,7 @@ class Company(db.Model):
     email = db.Column(db.String(100))
     website = db.Column(db.String(200))
     logo = db.Column(db.String(200))        # filename in static/images
+    logo_with_name = db.Column(db.String(200), nullable=True)  # For header
     signature = db.Column(db.String(200))   # filename in static/images/signatures
     hr_name = db.Column(db.String(100))
     hr_designation = db.Column(db.String(100))
@@ -195,6 +196,61 @@ class Company(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
     notice_period = db.Column(db.String(50), nullable=True)
     email_domain = db.Column(db.String(100), nullable=True)
+    accepts_interns = db.Column(db.Boolean, default=True)
+
+#intern model
+class Intern(db.Model):
+    __tablename__ = 'interns'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    intern_id = db.Column(db.String(20), unique=True, nullable=False)
+    full_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
+    gender = db.Column(db.String(20), nullable=True)
+    address = db.Column(db.Text, nullable=True)
+    aadhar_no = db.Column(db.String(20), unique=True)
+    pan_no = db.Column(db.String(20), unique=True)
+    qualification = db.Column(db.String(100), nullable=True)
+    college_name = db.Column(db.String(200), nullable=True)
+    course = db.Column(db.String(100), nullable=True)
+    specialization = db.Column(db.String(100), nullable=True)
+    internship_duration = db.Column(db.Integer, default=3)
+    start_date = db.Column(db.Date, nullable=True)
+    end_date = db.Column(db.Date, nullable=True)
+    stipend = db.Column(db.Float, default=0)
+    status = db.Column(db.String(20), default='active')
+    profile_image = db.Column(db.String(200), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)
+    company = db.relationship('Company', backref='interns')
+    mentor_name = db.Column(db.String(100), nullable=True)
+    mentor_designation = db.Column(db.String(100), nullable=True)
+    mentor_email = db.Column(db.String(100), nullable=True)
+    
+    # ========== ADD BANK DETAILS FIELDS ==========
+    account_holder = db.Column(db.String(100), nullable=True)
+    account_number = db.Column(db.String(50), nullable=True)
+    bank_name = db.Column(db.String(100), nullable=True)
+    branch = db.Column(db.String(100), nullable=True)
+    ifsc_code = db.Column(db.String(20), nullable=True)
+    
+    # Relationships
+    documents = db.relationship('InternDocument', backref='intern', lazy=True)
+
+#intern documents model
+class InternDocument(db.Model):
+    __tablename__ = 'intern_documents'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    intern_id = db.Column(db.Integer, db.ForeignKey('interns.id'), nullable=False)
+    document_type = db.Column(db.String(50))  # intern_offer_letter, certificate_of_internship
+    filename = db.Column(db.String(200))
+    file_path = db.Column(db.String(500))
+    generated_at = db.Column(db.DateTime, default=datetime.now)
+    generated_by = db.Column(db.String(80))
+    drive_file_id = db.Column(db.String(100), nullable=True)
 
 #==================helper functions========================
 def get_company_domain(company):
@@ -459,41 +515,41 @@ def calculate_annual_income_tax(annual_ctc):
         return 112500 + (taxable_income - 1000000) * 0.3
 
 #function for production
-def html_to_pdf(html_content, output_path):
-    try:
-        HTML(string=html_content).write_pdf(output_path)
-        return True
-    except Exception as e:
-        print("WeasyPrint error:", e)
-        return False
+# def html_to_pdf(html_content, output_path):
+#     try:
+#         HTML(string=html_content).write_pdf(output_path)
+#         return True
+#     except Exception as e:
+#         print("WeasyPrint error:", e)
+#         return False
 
 #local function
-# def html_to_pdf(html_content, output_path):
-#     # Path to the standalone WeasyPrint executable (for local Windows)
-#     weasyprint_path = os.path.join(app.root_path, 'weasyprint', 'weasyprint.exe')
+def html_to_pdf(html_content, output_path):
+    # Path to the standalone WeasyPrint executable (for local Windows)
+    weasyprint_path = os.path.join(app.root_path, 'weasyprint', 'weasyprint.exe')
     
-#     with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
-#         f.write(html_content)
-#         temp_html_path = f.name
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
+        f.write(html_content)
+        temp_html_path = f.name
 
-#     try:
-#         result = subprocess.run(
-#             [weasyprint_path, temp_html_path, output_path],
-#             capture_output=True,
-#             text=True,
-#             timeout=30
-#         )
-#         if result.returncode == 0:
-#             return True
-#         else:
-#             print("WeasyPrint error:", result.stderr)
-#             return False
-#     except Exception as e:
-#         print("WeasyPrint exception:", e)
-#         return False
-#     finally:
-#         if os.path.exists(temp_html_path):
-#             os.unlink(temp_html_path)
+    try:
+        result = subprocess.run(
+            [weasyprint_path, temp_html_path, output_path],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        if result.returncode == 0:
+            return True
+        else:
+            print("WeasyPrint error:", result.stderr)
+            return False
+    except Exception as e:
+        print("WeasyPrint exception:", e)
+        return False
+    finally:
+        if os.path.exists(temp_html_path):
+            os.unlink(temp_html_path)
 
 @app.template_filter('humanize')
 def humanize_filter(value):
@@ -541,6 +597,7 @@ def preview():
     selected_months = session.get('selected_months', [])
     per_month_values = session.get('per_month_values', {})
     month_days_values = session.get('month_days_values', {})
+    member_type = session.get('member_type', 'employee')  # Get member type
 
     if 'document_type' not in form_data:
         flash('Document type is missing!', 'danger')
@@ -619,7 +676,76 @@ def preview():
         )
     # ========== END RESIGNATION ACCEPTANCE HANDLER ==========
 
-    # ... rest of your preview code remains the same ...
+    # ========== INTERN DOCUMENTS HANDLER ==========
+    if form_data.get('document_type') in ['intern_offer_letter', 'certificate_of_internship']:
+        # Get intern from database
+        intern_id = form_data.get('intern_id')
+        intern = None
+        if intern_id:
+            intern = Intern.query.get(intern_id)
+        
+        # Get company
+        company_id = form_data.get('company')
+        company = None
+        if company_id:
+            try:
+                company = Company.query.get(int(company_id))
+            except (ValueError, TypeError):
+                company = None
+        
+        if not intern:
+            flash('Intern not found', 'danger')
+            return redirect(url_for('admin_dashboard'))
+        
+        if not company:
+            flash('Company not found', 'danger')
+            return redirect(url_for('admin_dashboard'))
+        
+        # Prepare data for template
+        name_parts = intern.full_name.split() if intern.full_name else ['']
+        first_name = name_parts[0] if name_parts else ''
+        
+        # Calculate end date
+        end_date = intern.end_date
+        if not end_date and intern.start_date:
+            end_date = intern.start_date + timedelta(days=intern.internship_duration * 30)
+        
+        company_domain = get_company_domain(company)
+        
+        data = {
+            'timestamp': datetime.now().strftime('%d %B %Y'),
+            'full_name': intern.full_name,
+            'first_name': first_name,
+            'email': intern.email,
+            'address': intern.address,
+            'qualification': intern.qualification,
+            'college_name': intern.college_name,
+            'course': intern.course,
+            'specialization': intern.specialization,
+            'internship_duration': intern.internship_duration,
+            'start_date': intern.start_date.strftime('%d %B %Y') if intern.start_date else 'TBD',
+            'end_date': end_date.strftime('%d %B %Y') if end_date else 'TBD',
+            'stipend': intern.stipend,
+            'mentor_name': intern.mentor_name or company.hr_name,
+            'mentor_designation': intern.mentor_designation or company.hr_designation,
+            'hr_name': company.hr_name or 'HR Department',
+            'hr_designation': company.hr_designation or 'HR Manager',
+            'company_name': company.name,
+            'company_domain': company_domain,
+            'certificate_no': f"CERT-{intern.intern_id}-{datetime.now().year}",
+            'acceptance_deadline': (datetime.now() + timedelta(days=5)).strftime('%d %B %Y')
+        }
+        
+        return render_template(
+            f'documents/{form_data.get("document_type")}.html',
+            data=data,
+            company=company,
+            watermark_logo=company.logo,
+            now=datetime.now()
+        )
+    # ========== END INTERN DOCUMENTS HANDLER ==========
+
+    # ... rest of your existing preview code ...
     if form_data.get('joining_date'):
         date_before = get_previous_workday(form_data['joining_date'], 8)
         form_data['date_before'] = date_before
@@ -838,19 +964,19 @@ def preview():
 def preview_document(doc_type):
     form_data = session.get('form_data', {})
     selected_months = session.get('selected_months', [])
+    member_type = session.get('member_type', 'employee')
     
     if not form_data:
         return redirect(url_for('index'))
 
     # ========== RESIGNATION ACCEPTANCE HANDLER ==========
     if doc_type == 'resignation_acceptance':
-        # Get employee from database
+        # ... existing resignation acceptance code ...
         employee_id = form_data.get('employee_id')
         employee = None
         if employee_id:
             employee = Employee.query.filter_by(employee_id=employee_id).first()
         
-        # Get company
         company_id = form_data.get('company')
         company = None
         if company_id:
@@ -867,21 +993,18 @@ def preview_document(doc_type):
             flash('Company not found', 'danger')
             return redirect(url_for('admin_dashboard'))
         
-        # Check required data
         if not employee.resignation_datetime:
-            flash('Resignation date and time not found. Please save resignation details first.', 'danger')
+            flash('Resignation date and time not found.', 'danger')
             return redirect(url_for('view_employee', emp_id=employee.id))
         
         if not employee.relieving_date:
-            flash('Relieving date not found. Please save resignation details first.', 'danger')
+            flash('Relieving date not found.', 'danger')
             return redirect(url_for('view_employee', emp_id=employee.id))
         
-        # Prepare data for template
         name_parts = employee.full_name.split() if employee.full_name else ['']
         first_name = name_parts[0] if name_parts else ''
         last_name = name_parts[-1] if len(name_parts) > 1 else ''
         
-        # Get company domain
         company_domain = get_company_domain(company)
         hr_email = get_hr_email(company)
         employee_email = get_employee_email(employee, company)
@@ -910,6 +1033,75 @@ def preview_document(doc_type):
         )
     # ========== END RESIGNATION ACCEPTANCE HANDLER ==========
 
+    # ========== INTERN DOCUMENTS HANDLER ==========
+    if doc_type in ['intern_offer_letter', 'certificate_of_internship']:
+        # Get intern from database
+        intern_id = form_data.get('intern_id')
+        intern = None
+        if intern_id:
+            intern = Intern.query.get(intern_id)
+        
+        # Get company
+        company_id = form_data.get('company')
+        company = None
+        if company_id:
+            try:
+                company = Company.query.get(int(company_id))
+            except (ValueError, TypeError):
+                company = None
+        
+        if not intern:
+            flash('Intern not found', 'danger')
+            return redirect(url_for('admin_dashboard'))
+        
+        if not company:
+            flash('Company not found', 'danger')
+            return redirect(url_for('admin_dashboard'))
+        
+        # Prepare data for template
+        name_parts = intern.full_name.split() if intern.full_name else ['']
+        first_name = name_parts[0] if name_parts else ''
+        
+        end_date = intern.end_date
+        if not end_date and intern.start_date:
+            end_date = intern.start_date + timedelta(days=intern.internship_duration * 30)
+        
+        company_domain = get_company_domain(company)
+        
+        data = {
+            'timestamp': datetime.now().strftime('%d %B %Y'),
+            'full_name': intern.full_name,
+            'first_name': first_name,
+            'email': intern.email,
+            'address': intern.address,
+            'qualification': intern.qualification,
+            'college_name': intern.college_name,
+            'course': intern.course,
+            'specialization': intern.specialization,
+            'internship_duration': intern.internship_duration,
+            'start_date': intern.start_date.strftime('%d %B %Y') if intern.start_date else 'TBD',
+            'end_date': end_date.strftime('%d %B %Y') if end_date else 'TBD',
+            'stipend': intern.stipend,
+            'mentor_name': intern.mentor_name or company.hr_name,
+            'mentor_designation': intern.mentor_designation or company.hr_designation,
+            'hr_name': company.hr_name or 'HR Department',
+            'hr_designation': company.hr_designation or 'HR Manager',
+            'company_name': company.name,
+            'company_domain': company_domain,
+            'certificate_no': f"CERT-{intern.intern_id}-{datetime.now().year}",
+            'acceptance_deadline': (datetime.now() + timedelta(days=5)).strftime('%d %B %Y')
+        }
+        
+        return render_template(
+            f'documents/{doc_type}.html',
+            data=data,
+            company=company,
+            watermark_logo=company.logo,
+            now=datetime.now()
+        )
+    # ========== END INTERN DOCUMENTS HANDLER ==========
+
+    # ... rest of your existing preview_document code ...
     form_data = convert_dates(form_data)
 
     if form_data.get('joining_date'):
@@ -938,7 +1130,7 @@ def preview_document(doc_type):
     components = calculate_salary_components(
         ctc=ctc,
         increment_per_month=increment_per_month,
-        paid_days=30,  # Default for non-salary docs
+        paid_days=30,
         month_days=30
     )
     
@@ -1025,16 +1217,13 @@ def preview_document(doc_type):
 def generate():
     form_data = session.get('form_data')
     selected_months = session.get('selected_months', [])
+    member_type = session.get('member_type', 'employee')
 
     if not form_data:
         return redirect(url_for('index'))
 
     upload_to_drive_flag = request.form.get('upload_to_drive') == 'true'
     doc_type = form_data.get('document_type')
-
-    print(f"\n{'='*50}")
-    print(f"GENERATE ROUTE STARTED for {doc_type}")
-    print(f"{'='*50}")
 
     form_data = convert_dates(form_data)
 
@@ -1139,6 +1328,144 @@ def generate():
         flash(f'✅ Resignation acceptance letter generated successfully for {employee.full_name}!', 'success')
         return redirect(url_for('admin_dashboard'))
     # ========== END RESIGNATION ACCEPTANCE HANDLER ==========
+
+     # ========== INTERN DOCUMENTS HANDLER ==========
+    if doc_type in ['intern_offer_letter', 'certificate_of_internship']:
+        # Get intern
+        intern = None
+        if 'intern_id' in form_data:
+            intern = Intern.query.get(form_data.get('intern_id'))
+        
+        if not intern:
+            flash('Intern not found', 'danger')
+            return redirect(url_for('admin_dashboard'))
+        
+        # Get company
+        company_id = form_data.get('company')
+        company = None
+        if company_id:
+            try:
+                company = Company.query.get(int(company_id))
+            except (ValueError, TypeError):
+                company = None
+        
+        if not company:
+            flash('Company not found', 'danger')
+            return redirect(url_for('admin_dashboard'))
+        
+        # Prepare data for template
+        name_parts = intern.full_name.split() if intern.full_name else ['']
+        first_name = name_parts[0] if name_parts else ''
+        
+        end_date = intern.end_date
+        if not end_date and intern.start_date:
+            end_date = intern.start_date + timedelta(days=intern.internship_duration * 30)
+        
+        company_domain = get_company_domain(company)
+        
+        data = {
+            'timestamp': datetime.now().strftime('%d %B %Y'),
+            'full_name': intern.full_name,
+            'first_name': first_name,
+            'email': intern.email,
+            'address': intern.address,
+            'qualification': intern.qualification,
+            'college_name': intern.college_name,
+            'course': intern.course,
+            'specialization': intern.specialization,
+            'internship_duration': intern.internship_duration,
+            'start_date': intern.start_date.strftime('%d %B %Y') if intern.start_date else 'TBD',
+            'end_date': end_date.strftime('%d %B %Y') if end_date else 'TBD',
+            'stipend': intern.stipend,
+            'mentor_name': intern.mentor_name or company.hr_name,
+            'mentor_designation': intern.mentor_designation or company.hr_designation,
+            'hr_name': company.hr_name or 'HR Department',
+            'hr_designation': company.hr_designation or 'HR Manager',
+            'company_name': company.name,
+            'company_domain': company_domain,
+            'certificate_no': f"CERT-{intern.intern_id}-{datetime.now().year}",
+            'acceptance_deadline': (datetime.now() + timedelta(days=5)).strftime('%d %B %Y')
+        }
+        
+        # Generate HTML
+        html_content = render_template(f'documents/{doc_type}.html', data=data, company=company)
+        
+        # Create PDF filename
+        filename = f"{doc_type}_{intern.intern_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        # Convert to PDF
+        if not html_to_pdf(html_content, file_path):
+            flash('Failed to generate PDF document', 'danger')
+            return redirect(url_for('admin_dashboard', tab='document_generator'))
+        
+        # Save document record
+        document = InternDocument(
+            intern_id=intern.id,
+            document_type=doc_type,
+            filename=filename,
+            file_path=file_path,
+            generated_by=session.get('admin_username', 'admin'),
+            generated_at=datetime.now()
+        )
+        db.session.add(document)
+        
+        # Upload to Drive if requested
+        if upload_to_drive_flag:
+            try:
+                # Create drive folder structure for interns
+                service, error = get_drive_service()
+                if not error:
+                    intern_folder_name = f"{intern.intern_id}_{intern.full_name.replace(' ', '_')}"
+                    folder_response = service.files().list(
+                        q=f"name='{intern_folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+                        spaces='drive', fields='files(id)'
+                    ).execute()
+                    folders = folder_response.get('files', [])
+                    if folders:
+                        parent_folder_id = folders[0]['id']
+                    else:
+                        file_metadata = {'name': intern_folder_name, 'mimeType': 'application/vnd.google-apps.folder'}
+                        folder = service.files().create(body=file_metadata, fields='id').execute()
+                        parent_folder_id = folder.get('id')
+                    
+                    doc_folder_map = {
+                        'intern_offer_letter': 'Offer Letters',
+                        'certificate_of_internship': 'Certificates'
+                    }
+                    folder_name = doc_folder_map.get(doc_type, 'Documents')
+                    
+                    folder_response = service.files().list(
+                        q=f"name='{folder_name}' and '{parent_folder_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
+                        spaces='drive', fields='files(id)'
+                    ).execute()
+                    subfolders = folder_response.get('files', [])
+                    if subfolders:
+                        target_folder_id = subfolders[0]['id']
+                    else:
+                        file_metadata = {'name': folder_name, 'mimeType': 'application/vnd.google-apps.folder', 'parents': [parent_folder_id]}
+                        subfolder = service.files().create(body=file_metadata, fields='id').execute()
+                        target_folder_id = subfolder.get('id')
+                    
+                    media = MediaFileUpload(file_path, mimetype='application/pdf', resumable=True)
+                    file = service.files().create(
+                        body={'name': filename, 'parents': [target_folder_id]},
+                        media_body=media,
+                        fields='id'
+                    ).execute()
+                    document.drive_file_id = file.get('id')
+            except Exception as e:
+                print(f"Drive upload failed: {e}")
+        
+        db.session.commit()
+        
+        # Clear session data
+        session.pop('form_data', None)
+        session.pop('selected_months', None)
+        
+        flash(f'✅ {doc_type.replace("_", " ").title()} generated successfully for {intern.full_name}!', 'success')
+        return redirect(url_for('admin_dashboard', tab='document_generator'))
+    # ========== END INTERN DOCUMENTS HANDLER ==========
 
     # ------------------------- FIND EMPLOYEE -------------------------
     employee = None
@@ -1491,6 +1818,8 @@ def admin_dashboard():
     # Get tab from query parameters
     active_tab = request.args.get('tab', 'dashboard')
     selected_emp_id = request.args.get('emp_id', type=int)
+    selected_member_id = request.args.get('member_id', type=int)
+    selected_member_type = request.args.get('member_type', 'employee')
 
     # Get all employees with their document counts
     employees = Employee.query.order_by(Employee.created_at.desc()).all()
@@ -1508,23 +1837,28 @@ def admin_dashboard():
             'increment_amount': increment_amount
         })
 
+    # Get all interns
+    interns = Intern.query.order_by(Intern.created_at.desc()).all()
+
     total_employees = len(employees)
+    total_interns = len(interns)
     active_employees = sum(1 for emp in employees if emp.status == 'active')
+    active_interns = sum(1 for intern in interns if intern.status == 'active')
 
     # ---------- Payment calculations using simplified model ----------
     # All payments
     all_payments = Payment.query.all()
 
     paid_payments = [p for p in all_payments if p.paid_amt >= p.amount]
-    pending_payments = [p for p in all_payments if p.paid_amt < p.amount]
+    pending_payments_list = [p for p in all_payments if p.paid_amt < p.amount]
 
     paid_count = len(paid_payments)
-    pending_count = len(pending_payments)
-    overdue_count = 0  # define your overdue logic if needed
+    pending_count = len(pending_payments_list)
+    overdue_count = 0
 
     paid_amount = sum(p.amount for p in paid_payments)
-    pending_amount = sum(p.amount - p.paid_amt for p in pending_payments)
-    overdue_amount = 0  # define your logic
+    pending_amount = sum(p.amount - p.paid_amt for p in pending_payments_list)
+    overdue_amount = 0
 
     # Get all payments for the table
     payments_result = db.session.query(
@@ -1560,13 +1894,22 @@ def admin_dashboard():
             'paid_date': p.paid_date.strftime('%d %b %Y') if p.paid_date else 'N/A',
         })
 
+    # Get companies for add member form
+    companies = Company.query.all()
+
     return render_template('admin_dashboard.html',
                          employees=employee_data,
+                         interns=interns,
+                         companies=companies,
                          active_tab=active_tab,
                          selected_emp_id=selected_emp_id,
+                         selected_member_id=selected_member_id,
+                         selected_member_type=selected_member_type,
                          now=datetime.now(),
                          total_employees=total_employees,
+                         total_interns=total_interns,
                          active_employees=active_employees,
+                         active_interns=active_interns,
                          total_documents=total_documents,
                          pending_payments=pending_count,
                          paid_count=paid_count,
@@ -1903,6 +2246,293 @@ def admin_generate_document(emp_id, doc_type):
     # ===== All other document types (offer letter, experience letter, etc.) =====
     # Redirect to company selection page so the admin can choose a company
     return redirect(url_for('select_company_for_doc', emp_id=emp_id, doc_type=doc_type))
+
+# ========== INTERN DOCUMENT GENERATION ROUTES ==========
+@app.route('/set-intern-preview/<int:intern_id>/<doc_type>', methods=['POST'])
+def set_intern_preview(intern_id, doc_type):
+    if not session.get('is_admin'):
+        return redirect(url_for('admin_login'))
+    
+    try:
+        intern = Intern.query.get_or_404(intern_id)
+        
+        # Set session data
+        session['form_data'] = {
+            'document_type': doc_type,
+            'intern_id': intern.id,
+            'company': intern.company_id,
+            'member_type': 'intern'
+        }
+        
+        # Redirect to preview_document with the doc_type
+        return redirect(url_for('preview_document', doc_type=doc_type))
+        
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+        return redirect(url_for('admin_dashboard', tab='document_generator'))
+
+@app.route('/set-intern-session', methods=['POST'])
+def set_intern_session():
+    if not session.get('is_admin'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    data = request.get_json()
+    intern_id = data.get('intern_id')
+    doc_type = data.get('doc_type')
+    
+    try:
+        intern = Intern.query.get(intern_id)
+        if not intern:
+            return jsonify({'error': 'Intern not found'}), 404
+        
+        session['form_data'] = {
+            'document_type': doc_type,
+            'intern_id': intern.id,
+            'company': intern.company_id,
+            'member_type': 'intern'
+        }
+        
+        return jsonify({'success': True}), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/admin/add-intern', methods=['POST'])
+def add_intern():
+    if not session.get('is_admin'):
+        return redirect(url_for('admin_login'))
+    
+    try:
+        # Get the next intern ID number
+        last_intern = Intern.query.order_by(Intern.id.desc()).first()
+        next_id = (last_intern.id + 1) if last_intern else 1
+        intern_id = f"LMSI{str(next_id).zfill(4)}"
+        
+        # Handle profile image upload
+        profile_image = None
+        if 'profile_image' in request.files:
+            file = request.files['profile_image']
+            if file and file.filename:
+                filename = secure_filename(f"{intern_id}_{file.filename}")
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'profiles', filename)
+                file.save(filepath)
+                profile_image = filename
+        
+        # Calculate end date
+        start_date = None
+        end_date = None
+        if request.form.get('start_date'):
+            start_date = datetime.strptime(request.form.get('start_date'), '%Y-%m-%d').date()
+            duration = int(request.form.get('internship_duration', 3))
+            end_date = start_date + timedelta(days=duration * 30)
+        
+        # Create new intern
+        intern = Intern(
+            intern_id=intern_id,
+            full_name=request.form.get('full_name'),
+            email=request.form.get('email'),
+            phone=request.form.get('phone'),
+            gender=request.form.get('gender'),
+            address=request.form.get('address'),
+            aadhar_no=request.form.get('aadhar_no'),
+            pan_no=request.form.get('pan_no'),
+            qualification=request.form.get('qualification'),
+            college_name=request.form.get('college_name'),
+            course=request.form.get('course'),
+            specialization=request.form.get('specialization'),
+            internship_duration=int(request.form.get('internship_duration', 3)),
+            start_date=start_date,
+            end_date=end_date,
+            stipend=float(request.form.get('stipend', 0)),
+            status=request.form.get('status', 'active'),
+            profile_image=profile_image,
+            mentor_name=request.form.get('mentor_name'),
+            mentor_designation=request.form.get('mentor_designation'),
+            company_id=request.form.get('company_id', type=int),
+            # ========== ADD BANK DETAILS ==========
+            account_holder=request.form.get('account_holder'),
+            account_number=request.form.get('account_number'),
+            bank_name=request.form.get('bank_name'),
+            branch=request.form.get('branch'),
+            ifsc_code=request.form.get('ifsc_code')
+        )
+        
+        db.session.add(intern)
+        db.session.commit()
+        
+        flash(f'Intern {intern.full_name} added successfully! (ID: {intern.intern_id})', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error adding intern: {str(e)}', 'danger')
+        print(f"Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    
+    return redirect(url_for('admin_dashboard', tab='members'))
+
+@app.route('/admin/intern/<int:intern_id>')
+def view_intern(intern_id):
+    if not session.get('is_admin'):
+        return redirect(url_for('admin_login'))
+    
+    intern = Intern.query.get_or_404(intern_id)
+    documents = InternDocument.query.filter_by(intern_id=intern.id).all()
+    company = Company.query.get(intern.company_id) if intern.company_id else None
+    
+    return render_template('view_intern.html', intern=intern, documents=documents, company=company)
+
+@app.route('/admin/delete-intern/<int:intern_id>', methods=['POST'])
+def delete_intern(intern_id):
+    if not session.get('is_admin'):
+        return redirect(url_for('admin_login'))
+    
+    intern = Intern.query.get_or_404(intern_id)
+    
+    try:
+        # Delete associated documents first
+        InternDocument.query.filter_by(intern_id=intern.id).delete()
+        db.session.delete(intern)
+        db.session.commit()
+        flash(f'Intern {intern.full_name} deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting intern: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin_dashboard', tab='members'))
+
+@app.route('/admin/generate-intern-document/<int:intern_id>/<doc_type>')
+def generate_intern_document(intern_id, doc_type):
+    if not session.get('is_admin'):
+        return redirect(url_for('admin_login'))
+    
+    try:
+        intern = Intern.query.get_or_404(intern_id)
+        
+        if not intern.company:
+            flash('Company not found for this intern.', 'danger')
+            return redirect(url_for('admin_dashboard', tab='document_generator'))
+        
+        company = intern.company
+        
+        # Prepare data
+        name_parts = intern.full_name.split() if intern.full_name else ['']
+        first_name = name_parts[0] if name_parts else ''
+        
+        # Calculate end date if not set
+        end_date = intern.end_date
+        if not end_date and intern.start_date:
+            end_date = intern.start_date + timedelta(days=intern.internship_duration * 30)
+        
+        company_domain = get_company_domain(company)
+        
+        data = {
+            'timestamp': datetime.now().strftime('%d %B %Y'),
+            'full_name': intern.full_name,
+            'first_name': first_name,
+            'email': intern.email,
+            'address': intern.address,
+            'qualification': intern.qualification,
+            'college_name': intern.college_name,
+            'course': intern.course,
+            'specialization': intern.specialization,
+            'internship_duration': intern.internship_duration,
+            'start_date': intern.start_date.strftime('%d %B %Y') if intern.start_date else 'TBD',
+            'end_date': end_date.strftime('%d %B %Y') if end_date else 'TBD',
+            'stipend': intern.stipend,
+            'mentor_name': intern.mentor_name or company.hr_name,
+            'mentor_designation': intern.mentor_designation or company.hr_designation,
+            'hr_name': company.hr_name or 'HR Department',
+            'hr_designation': company.hr_designation or 'HR Manager',
+            'company_name': company.name,
+            'certificate_no': f"CERT-{intern.intern_id}-{datetime.now().year}",
+            'acceptance_deadline': (datetime.now() + timedelta(days=5)).strftime('%d %B %Y')
+        }
+        
+        # Generate HTML
+        html_content = render_template(f'documents/{doc_type}.html', data=data, company=company)
+        
+        # Create PDF
+        filename = f"{doc_type}_{intern.intern_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        if not html_to_pdf(html_content, file_path):
+            flash('Failed to generate PDF document', 'danger')
+            return redirect(url_for('admin_dashboard', tab='document_generator'))
+        
+        # Save document record
+        document = InternDocument(
+            intern_id=intern.id,
+            document_type=doc_type,
+            filename=filename,
+            file_path=file_path,
+            generated_by=session.get('admin_username', 'admin'),
+            generated_at=datetime.now()
+        )
+        db.session.add(document)
+        db.session.commit()
+        
+        # Upload to Google Drive if connected
+        token_path = os.path.join(app.config['GOOGLE_DRIVE_TOKEN_FOLDER'], 'token.pickle')
+        if os.path.exists(token_path):
+            try:
+                # Create drive folder structure for interns
+                service, error = get_drive_service()
+                if not error:
+                    # Create intern folder
+                    intern_folder_name = f"{intern.intern_id}_{intern.full_name.replace(' ', '_')}"
+                    folder_response = service.files().list(
+                        q=f"name='{intern_folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+                        spaces='drive', fields='files(id)'
+                    ).execute()
+                    folders = folder_response.get('files', [])
+                    if folders:
+                        parent_folder_id = folders[0]['id']
+                    else:
+                        file_metadata = {'name': intern_folder_name, 'mimeType': 'application/vnd.google-apps.folder'}
+                        folder = service.files().create(body=file_metadata, fields='id').execute()
+                        parent_folder_id = folder.get('id')
+                    
+                    # Create document type folder
+                    doc_folder_map = {
+                        'intern_offer_letter': 'Offer Letters',
+                        'certificate_of_internship': 'Certificates'
+                    }
+                    folder_name = doc_folder_map.get(doc_type, 'Documents')
+                    
+                    folder_response = service.files().list(
+                        q=f"name='{folder_name}' and '{parent_folder_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
+                        spaces='drive', fields='files(id)'
+                    ).execute()
+                    subfolders = folder_response.get('files', [])
+                    if subfolders:
+                        target_folder_id = subfolders[0]['id']
+                    else:
+                        file_metadata = {'name': folder_name, 'mimeType': 'application/vnd.google-apps.folder', 'parents': [parent_folder_id]}
+                        subfolder = service.files().create(body=file_metadata, fields='id').execute()
+                        target_folder_id = subfolder.get('id')
+                    
+                    # Upload file
+                    media = MediaFileUpload(file_path, mimetype='application/pdf', resumable=True)
+                    file = service.files().create(
+                        body={'name': filename, 'parents': [target_folder_id]},
+                        media_body=media,
+                        fields='id'
+                    ).execute()
+                    document.drive_file_id = file.get('id')
+                    db.session.commit()
+            except Exception as e:
+                print(f"Drive upload failed: {e}")
+        
+        flash(f'✅ {doc_type.replace("_", " ").title()} generated successfully for {intern.full_name}!', 'success')
+        return redirect(url_for('admin_dashboard', tab='document_generator'))
+        
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'Error generating document: {str(e)}', 'danger')
+        return redirect(url_for('admin_dashboard', tab='document_generator'))
 
 #view employee details and documents
 @app.route('/admin/employee/<int:emp_id>')
@@ -2527,16 +3157,28 @@ def admin_companies():
 def add_company():
     if not session.get('is_admin'):
         return redirect(url_for('admin_login'))
+    
     if request.method == 'POST':
         # Handle file uploads
         logo_file = request.files.get('logo')
+        logo_with_name_file = request.files.get('logo_with_name')  # NEW
         signature_file = request.files.get('signature')
+        
         logo_filename = None
+        logo_with_name_filename = None
         signature_filename = None
 
+        # Save logo (for watermark)
         if logo_file and logo_file.filename:
             logo_filename = secure_filename(logo_file.filename)
             logo_file.save(os.path.join(app.root_path, 'static', 'images', logo_filename))
+        
+        # Save logo with name (for header)
+        if logo_with_name_file and logo_with_name_file.filename:
+            logo_with_name_filename = secure_filename(logo_with_name_file.filename)
+            logo_with_name_file.save(os.path.join(app.root_path, 'static', 'images', logo_with_name_filename))
+        
+        # Save signature
         if signature_file and signature_file.filename:
             signature_filename = secure_filename(signature_file.filename)
             signature_file.save(os.path.join(app.root_path, 'static', 'images', 'signatures', signature_filename))
@@ -2548,22 +3190,28 @@ def add_company():
             email=request.form.get('email'),
             website=request.form.get('website'),
             logo=logo_filename,
+            logo_with_name=logo_with_name_filename,  # NEW
             signature=signature_filename,
             hr_name=request.form.get('hr_name'),
             hr_designation=request.form.get('hr_designation'),
-            hr_email=request.form.get('hr_email')
+            hr_email=request.form.get('hr_email'),
+            notice_period=request.form.get('notice_period'),  # NEW
+            email_domain=request.form.get('email_domain')     # NEW
         )
         db.session.add(company)
         db.session.commit()
         flash('Company added successfully', 'success')
         return redirect(url_for('admin_companies'))
+    
     return render_template('company_form.html', company=None)
 
 @app.route('/admin/companies/<int:company_id>/edit', methods=['GET', 'POST'])
 def edit_company(company_id):
     if not session.get('is_admin'):
         return redirect(url_for('admin_login'))
+    
     company = Company.query.get_or_404(company_id)
+    
     if request.method == 'POST':
         company.name = request.form['name']
         company.address = request.form.get('address')
@@ -2573,14 +3221,24 @@ def edit_company(company_id):
         company.hr_name = request.form.get('hr_name')
         company.hr_designation = request.form.get('hr_designation')
         company.hr_email = request.form.get('hr_email')
+        company.notice_period = request.form.get('notice_period')
+        company.email_domain = request.form.get('email_domain')
 
-        # Handle file uploads (replace if new file uploaded)
+        # Handle logo upload (for watermark)
         logo_file = request.files.get('logo')
         if logo_file and logo_file.filename:
             logo_filename = secure_filename(logo_file.filename)
             logo_file.save(os.path.join(app.root_path, 'static', 'images', logo_filename))
             company.logo = logo_filename
 
+        # Handle logo with name upload (NEW)
+        logo_with_name_file = request.files.get('logo_with_name')
+        if logo_with_name_file and logo_with_name_file.filename:
+            logo_with_name_filename = secure_filename(logo_with_name_file.filename)
+            logo_with_name_file.save(os.path.join(app.root_path, 'static', 'images', logo_with_name_filename))
+            company.logo_with_name = logo_with_name_filename
+
+        # Handle signature upload
         signature_file = request.files.get('signature')
         if signature_file and signature_file.filename:
             signature_filename = secure_filename(signature_file.filename)
@@ -2588,18 +3246,42 @@ def edit_company(company_id):
             company.signature = signature_filename
 
         db.session.commit()
-        flash('Company updated', 'success')
+        flash('Company updated successfully', 'success')
         return redirect(url_for('admin_companies'))
+    
     return render_template('company_form.html', company=company)
 
 @app.route('/admin/companies/<int:company_id>/delete', methods=['POST'])
 def delete_company(company_id):
     if not session.get('is_admin'):
         return redirect(url_for('admin_login'))
+    
     company = Company.query.get_or_404(company_id)
-    db.session.delete(company)
-    db.session.commit()
-    flash('Company deleted', 'success')
+    
+    try:
+        # Optionally delete associated image files
+        if company.logo:
+            logo_path = os.path.join(app.root_path, 'static', 'images', company.logo)
+            if os.path.exists(logo_path):
+                os.remove(logo_path)
+        
+        if company.logo_with_name:
+            logo_with_name_path = os.path.join(app.root_path, 'static', 'images', company.logo_with_name)
+            if os.path.exists(logo_with_name_path):
+                os.remove(logo_with_name_path)
+        
+        if company.signature:
+            signature_path = os.path.join(app.root_path, 'static', 'images', 'signatures', company.signature)
+            if os.path.exists(signature_path):
+                os.remove(signature_path)
+        
+        db.session.delete(company)
+        db.session.commit()
+        flash('Company deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting company: {str(e)}', 'danger')
+    
     return redirect(url_for('admin_companies'))
 
 @app.route('/admin/select-company-for-doc/<int:emp_id>/<doc_type>', methods=['GET', 'POST'])
@@ -2652,7 +3334,6 @@ def select_company_for_doc(emp_id, doc_type):
                 'timestamp': datetime.now().strftime('%d/%m/%Y %I:%M %p')
             }
 
-        # FIXED: Added 'relieving_letter' to the list
         elif doc_type in ['offer_letter', 'appointment_letter', 'experience_letter', 
                          'relieving_letter', 'other_standard_doc']:
             # Generic salary‑based document logic
@@ -2707,6 +3388,7 @@ def select_company_for_doc(emp_id, doc_type):
 
         # Save to session and go to preview
         session['form_data'] = form_data
+        session['member_type'] = 'employee'
         return redirect(url_for('preview'))
 
     # GET request – show company selection form
@@ -2714,59 +3396,69 @@ def select_company_for_doc(emp_id, doc_type):
                            employee=employee,
                            doc_type=doc_type,
                            companies=companies)
-                 
-# Create default admin if none exists
-with app.app_context():
-    try:
-        # Create all tables first
-        print("🔄 Creating database tables...")
-        db.create_all()
-        print("✅ Database tables created successfully!")
-        
-        # Then check/create admin
-        if Admin.query.first() is None:
-            default_admin = Admin(username='admin')
-            default_admin.set_password('admin123')
-            db.session.add(default_admin)
-            db.session.commit()
-            print("✅ Default admin created: username='admin', password='admin123'")
-    except Exception as e:
-        print(f"❌ Database setup error: {e}")
 
-with app.app_context():
-    db.create_all()
-    # Seed companies if none exist
-    if Company.query.count() == 0:
-        from config import COMPANIES as static_companies
-        for comp in static_companies:
-            # Map company names to logo files
-            logo_filename = None
-            if 'LiteCode' in comp['name']:
-                logo_filename = 'lc_logo.png'
-            elif 'Arraycon' in comp['name']:
-                logo_filename = 'arr_logo.png'
-            elif 'Web Minds' in comp['name']:
-                logo_filename = 'saraswati-yantra-saraswati-symbol-vector-happy-dussehra-vijayadashmi-sacred-symbol-2JDKHCY.jpg'
-            else:
-                logo_filename = comp.get('logo')  # fallback to config value
-            
-            company = Company(
-                name=comp['name'],
-                address=comp.get('address'),
-                phone=comp.get('phone'),
-                email=comp.get('email'),
-                website=comp.get('website'),
-                logo=logo_filename,  # Use the mapped filename
-                signature=comp.get('signature'),
-                hr_name=comp.get('hr_name'),
-                hr_designation=comp.get('hr_designation'),
-                hr_email=comp.get('hr_email')
-            )
-            db.session.add(company)
-        db.session.commit()
-        print("✅ Static companies imported into database with correct logos.")
-
+# ========== APP INITIALIZATION ==========
 if __name__ == '__main__':
-    app.run(debug=True)
-
+    with app.app_context():
+        try:
+            # Create all tables
+            print("🔄 Creating database tables...")
+            db.create_all()
+            print("✅ Database tables created successfully!")
+            
+            # Create default admin if none exists
+            if Admin.query.first() is None:
+                default_admin = Admin(username='admin')
+                default_admin.set_password('admin123')
+                db.session.add(default_admin)
+                db.session.commit()
+                print("✅ Default admin created: username='admin', password='admin123'")
+            
+            # Seed companies if none exist
+            try:
+                if Company.query.count() == 0:
+                    from config import COMPANIES as static_companies
+                    for comp in static_companies:
+                        # Map company names to logo files
+                        logo_filename = None
+                        if 'LiteCode' in comp['name']:
+                            logo_filename = 'lc_logo.png'
+                        elif 'Arraycon' in comp['name']:
+                            logo_filename = 'arr_logo.png'
+                        elif 'Web Minds' in comp['name']:
+                            logo_filename = 'saraswati-yantra-saraswati-symbol-vector-happy-dussehra-vijayadashmi-sacred-symbol-2JDKHCY.jpg'
+                        else:
+                            logo_filename = comp.get('logo')
+                        
+                        # Build company with all possible fields
+                        company = Company(
+                            name=comp['name'],
+                            address=comp.get('address'),
+                            phone=comp.get('phone'),
+                            email=comp.get('email'),
+                            website=comp.get('website'),
+                            logo=logo_filename,
+                            signature=comp.get('signature'),
+                            hr_name=comp.get('hr_name'),
+                            hr_designation=comp.get('hr_designation'),
+                            hr_email=comp.get('hr_email'),
+                            notice_period=comp.get('notice_period', '30'),
+                            email_domain=comp.get('email_domain', ''),
+                            accepts_interns=comp.get('accepts_interns', True)
+                        )
+                        db.session.add(company)
+                    db.session.commit()
+                    print("✅ Static companies imported successfully")
+                else:
+                    print("ℹ️ Companies already exist, skipping seed")
+            except Exception as e:
+                print(f"⚠️ Could not seed companies: {e}")
+                db.session.rollback()
+                
+        except Exception as e:
+            print(f"❌ Database initialization error: {e}")
+            import traceback
+            traceback.print_exc()
     
+    # Run the app
+    app.run(debug=True)

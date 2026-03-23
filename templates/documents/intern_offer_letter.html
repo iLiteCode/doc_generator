@@ -2,7 +2,7 @@
     /* ================= GLOBAL PRINT & A4 SETUP ================= */
     @page {
         size: A4;
-        margin: 0; /* Let CSS control margins for more precision */
+        margin: 0;
     }
 
     body {
@@ -15,17 +15,17 @@
     @media print {
         body { background: white; }
         .action-bar { display: none !important; }
-        .experience-letter {
+        .offer-letter {
             border: none !important;
             box-shadow: none !important;
             margin: 0 !important;
-            padding: 2cm !important; /* Standard A4 padding */
+            padding: 2cm !important;
             width: 100%;
-            height: 29.7cm; /* Full A4 height */
+            height: 29.7cm;
         }
     }
 
-    /* ================= ACTION BAR (KEEPING ORIGINAL STYLE) ================= */
+    /* ================= ACTION BAR ================= */
     .action-bar {
         background: white;
         padding: 15px 0;
@@ -53,11 +53,11 @@
         color: black;
     }
 
-    /* ================= EXPERIENCE LETTER CONTAINER ================= */
-    .experience-letter {
+    /* ================= OFFER LETTER CONTAINER ================= */
+    .offer-letter {
         background-color: white;
-        width: 21cm; /* Fixed A4 Width */
-        min-height: 29.7cm; /* Fixed A4 Height */
+        width: 21cm;
+        min-height: 29.7cm;
         margin: 30px auto;
         padding: 2cm;
         box-sizing: border-box;
@@ -70,7 +70,7 @@
 
     /* ================= LETTERHEAD ================= */
     .letter-header {
-        border-bottom: 2px solid #0d6efd;
+        border-bottom: 2px solid #28a745;
         padding-bottom: 15px;
         margin-bottom: 25px;
         display: flex;
@@ -79,7 +79,7 @@
     }
 
     .letter-header img {
-        height: 80px; /* Reduced from 140px to save space */
+        height: 80px;
         max-width: 250px;
         object-fit: contain;
     }
@@ -93,7 +93,7 @@
 
     h2 {
         text-align: center;
-        color: #0d6efd;
+        color: #28a745;
         font-size: 22px;
         margin: 20px 0 30px 0;
         text-transform: uppercase;
@@ -103,7 +103,7 @@
     /* ================= CONTENT AREA ================= */
     .content {
         text-align: justify;
-        line-height: 1.6; /* Balanced for readability and space */
+        line-height: 1.6;
         font-size: 15px;
         color: #333;
     }
@@ -112,9 +112,21 @@
         margin-bottom: 15px;
     }
 
+    .intern-details {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 20px 0;
+        border-left: 4px solid #28a745;
+    }
+
+    .intern-details p {
+        margin: 8px 0;
+    }
+
     /* ================= SIGNATURE & FOOTER ================= */
     .signature-section {
-        margin-top: auto; /* Pushes signature towards bottom if content is short */
+        margin-top: auto;
         padding-bottom: 40px;
     }
 
@@ -125,6 +137,19 @@
         font-size: 11px;
         color: #888;
         text-align: center;
+    }
+
+    .acceptance-line {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px dashed #ddd;
+    }
+
+    .signature-line {
+        width: 200px;
+        border-top: 1px solid #333;
+        margin-top: 40px;
+        margin-bottom: 10px;
     }
     .logo-section {
     display: flex;
@@ -167,18 +192,21 @@
 
 {% include '_watermark.html' %}
 
-<div class="experience-letter">
+<div class="offer-letter">
     <div class="letter-header">
     <div class="logo-section">
         {% if company.logo_with_name %}
+            <!-- Show logo with company name -->
             <img src="{{ url_for('static', filename='images/' + company.logo_with_name) }}" alt="{{ company.name }}" style="height: 80px; object-fit: contain;">
         {% elif company.logo %}
+            <!-- Show only logo if no logo_with_name -->
             <img src="{{ url_for('static', filename='images/' + company.logo) }}" alt="Logo" style="height: 60px; object-fit: contain;">
             <div class="company-info">
                 <div class="company-name">{{ company.name }}</div>
                 <div class="company-address">{{ company.address }}</div>
             </div>
         {% else %}
+            <!-- No logo, show text only -->
             <div class="company-info">
                 <div class="company-name">{{ company.name }}</div>
                 <div class="company-address">{{ company.address }}</div>
@@ -195,50 +223,54 @@
 </div>
 
     <div style="text-align: right; margin-bottom: 20px;">
-    <strong>Date:</strong> 
-    {% if data.certificate_issue_date and data.certificate_issue_date is not string %}
-        {{ data.certificate_issue_date.strftime('%d %B %Y') }}
-    {% else %}
-        {{ now.strftime('%d %B %Y') }}
-    {% endif %}
-</div>
+        <strong>Date:</strong> {{ data.timestamp }}
+    </div>
 
-    <h2>Experience Certificate</h2>
+    <h2>INTERN OFFER LETTER</h2>
 
     <div style="margin-bottom: 20px;">
         <p style="font-size: 16px; margin: 0;"><strong>{{ data.full_name|title }}</strong></p>
-        <p style="margin: 0; color: #666;">Employee ID: {{ "%04d"|format(employee.id) if employee else data.employee_id }}</p>
+        <p style="margin: 0; color: #666;">Intern ID: {{ data.intern_id if data.intern_id else 'LMSI0000' }}</p>
     </div>
 
     <div class="content">
-        <p>This is to certify that <strong>{{ data.full_name|title }}</strong> was employed with <strong>{{ company.name }}</strong> as a <strong>{{ data.designation|title }}</strong>.</p>
+        <p>Dear <strong>{{ data.first_name }}</strong>,</p>
         
-       <p>
-    The employee worked with us from 
-    <strong>
-        {% if data.joining_date and data.joining_date is not string %}
-            {{ data.joining_date.strftime('%d %B %Y') }}
-        {% else %}
-            {{ data.joining_date or '[N/A]' }}
-        {% endif %}
-    </strong> 
-    to 
-    <strong>
-        {% if data.relieving_date and data.relieving_date is not string %}
-            {{ data.relieving_date.strftime('%d %B %Y') }}
-        {% elif data.relieving_date %}
-            {{ data.relieving_date }}
-        {% else %}
-            Present
-        {% endif %}
-    </strong>.
-</p>
+        <p>We are pleased to offer you the position of <strong>Intern - {{ data.specialization or data.course or 'Intern' }}</strong> at <strong>{{ company.name }}</strong>. We were impressed with your qualifications and believe you will be a valuable addition to our team.</p>
+        
+        <div class="intern-details">
+            <p><strong>📋 Internship Details:</strong></p>
+            <p>🎓 <strong>Qualification:</strong> {{ data.qualification or 'N/A' }}</p>
+            <p>🏛️ <strong>College/University:</strong> {{ data.college_name or 'N/A' }}</p>
+            <p>📚 <strong>Course:</strong> {{ data.course or 'N/A' }}</p>
+            <p>🔬 <strong>Specialization:</strong> {{ data.specialization or 'N/A' }}</p>
+            <p>⏱️ <strong>Duration:</strong> {{ data.internship_duration }} months</p>
+            <p>📅 <strong>Start Date:</strong> {{ data.start_date }}</p>
+            <p>📅 <strong>End Date:</strong> {{ data.end_date }}</p>
+            <p>💰 <strong>Stipend:</strong> ₹{{ "{:,.0f}".format(data.stipend) }} per month</p>
+            <p>🕐 <strong>Working Hours:</strong> 10:00 AM to 6:00 PM (Monday to Friday)</p>
+            <p>👨‍🏫 <strong>Mentor:</strong> {{ data.mentor_name }} ({{ data.mentor_designation }})</p>
+        </div>
+        
+        <p>During your internship, you will be working on real-world projects, gaining hands-on experience, and learning from our experienced team members. You will be provided with the necessary training and resources to help you succeed.</p>
+        
+        <p>Please confirm your acceptance of this offer by signing the acceptance copy and returning it to us by <strong>{{ data.acceptance_deadline }}</strong>.</p>
+        
+        <p>We look forward to welcoming you to our team and wish you a rewarding internship experience.</p>
+    </div>
 
-        <p>During the tenure of employment, {{ data.full_name.split()[0] }} demonstrated professionalism, dedication, and commitment towards assigned responsibilities. The employee efficiently handled duties related to the role and maintained good conduct and teamwork within the organization.</p>
-
-        <p>We found {{ data.full_name.split()[0] }} to be sincere, hardworking, and a valuable contributor to the company. The services rendered were satisfactory during the period of employment.</p>
-
-        <p>We wish {{ data.full_name.split()[0] }} all the very best for future professional endeavors.</p>
+    <div class="acceptance-line">
+        <p><strong>I accept the terms and conditions of this internship offer:</strong></p>
+        <div style="display: flex; justify-content: space-between; margin-top: 30px;">
+            <div>
+                <div class="signature-line"></div>
+                <p><strong>_________________________</strong><br>Intern Signature</p>
+            </div>
+            <div>
+                <div class="signature-line"></div>
+                <p><strong>_________________________</strong><br>Date</p>
+            </div>
+        </div>
     </div>
 
     <div class="signature-section">
@@ -248,8 +280,8 @@
             {% endif %}
         </div>
         <p>
-            <strong>{{ company.hr_name }}</strong><br>
-            {{ company.hr_designation }}<br>
+            <strong>{{ data.hr_name }}</strong><br>
+            {{ data.hr_designation }}<br>
             {{ company.name }}
         </p>
     </div>

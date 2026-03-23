@@ -2,7 +2,7 @@
     /* ================= GLOBAL PRINT & A4 SETUP ================= */
     @page {
         size: A4;
-        margin: 0; /* Let CSS control margins for more precision */
+        margin: 0;
     }
 
     body {
@@ -15,17 +15,17 @@
     @media print {
         body { background: white; }
         .action-bar { display: none !important; }
-        .experience-letter {
+        .certificate {
             border: none !important;
             box-shadow: none !important;
             margin: 0 !important;
-            padding: 2cm !important; /* Standard A4 padding */
+            padding: 2cm !important;
             width: 100%;
-            height: 29.7cm; /* Full A4 height */
+            height: 29.7cm;
         }
     }
 
-    /* ================= ACTION BAR (KEEPING ORIGINAL STYLE) ================= */
+    /* ================= ACTION BAR ================= */
     .action-bar {
         background: white;
         padding: 15px 0;
@@ -53,11 +53,11 @@
         color: black;
     }
 
-    /* ================= EXPERIENCE LETTER CONTAINER ================= */
-    .experience-letter {
+    /* ================= CERTIFICATE CONTAINER ================= */
+    .certificate {
         background-color: white;
-        width: 21cm; /* Fixed A4 Width */
-        min-height: 29.7cm; /* Fixed A4 Height */
+        width: 21cm;
+        min-height: 29.7cm;
         margin: 30px auto;
         padding: 2cm;
         box-sizing: border-box;
@@ -70,7 +70,7 @@
 
     /* ================= LETTERHEAD ================= */
     .letter-header {
-        border-bottom: 2px solid #0d6efd;
+        border-bottom: 2px solid #20c997;
         padding-bottom: 15px;
         margin-bottom: 25px;
         display: flex;
@@ -79,7 +79,7 @@
     }
 
     .letter-header img {
-        height: 80px; /* Reduced from 140px to save space */
+        height: 80px;
         max-width: 250px;
         object-fit: contain;
     }
@@ -93,29 +93,77 @@
 
     h2 {
         text-align: center;
-        color: #0d6efd;
-        font-size: 22px;
-        margin: 20px 0 30px 0;
+        color: #20c997;
+        font-size: 28px;
+        margin: 20px 0 10px 0;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 2px;
+        font-family: 'Times New Roman', serif;
+    }
+
+    .certificate-subtitle {
+        text-align: center;
+        font-size: 18px;
+        color: #666;
+        margin-bottom: 30px;
+        border-bottom: 1px solid #ddd;
+        display: inline-block;
+        padding-bottom: 5px;
     }
 
     /* ================= CONTENT AREA ================= */
     .content {
-        text-align: justify;
-        line-height: 1.6; /* Balanced for readability and space */
-        font-size: 15px;
+        text-align: center;
+        line-height: 1.8;
+        font-size: 16px;
         color: #333;
     }
 
-    .content p {
-        margin-bottom: 15px;
+    .recipient-name {
+        font-size: 28px;
+        font-weight: bold;
+        color: #28a745;
+        margin: 30px 0;
+        font-family: 'Times New Roman', serif;
+        letter-spacing: 1px;
+    }
+
+    .certificate-text {
+        text-align: justify;
+        margin: 20px 0;
+    }
+
+    .internship-details {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 20px 0;
+        border-left: 4px solid #20c997;
+        text-align: left;
+    }
+
+    .internship-details p {
+        margin: 8px 0;
     }
 
     /* ================= SIGNATURE & FOOTER ================= */
     .signature-section {
-        margin-top: auto; /* Pushes signature towards bottom if content is short */
+        margin-top: auto;
         padding-bottom: 40px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .signature {
+        text-align: center;
+        width: 45%;
+    }
+
+    .signature-line {
+        width: 200px;
+        border-top: 1px solid #333;
+        margin-top: 40px;
+        margin-bottom: 10px;
     }
 
     .footer-note {
@@ -124,6 +172,27 @@
         padding-top: 10px;
         font-size: 11px;
         color: #888;
+        text-align: center;
+    }
+
+    .certificate-number {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 12px;
+        color: #999;
+    }
+
+    .seal {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        border: 2px solid #20c997;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 20px auto 0;
+        font-size: 10px;
+        color: #20c997;
         text-align: center;
     }
     .logo-section {
@@ -167,7 +236,7 @@
 
 {% include '_watermark.html' %}
 
-<div class="experience-letter">
+<div class="certificate">
     <div class="letter-header">
     <div class="logo-section">
         {% if company.logo_with_name %}
@@ -193,65 +262,74 @@
         Website: {{ company.website }}
     </div>
 </div>
-
     <div style="text-align: right; margin-bottom: 20px;">
-    <strong>Date:</strong> 
-    {% if data.certificate_issue_date and data.certificate_issue_date is not string %}
-        {{ data.certificate_issue_date.strftime('%d %B %Y') }}
-    {% else %}
-        {{ now.strftime('%d %B %Y') }}
-    {% endif %}
-</div>
+        <strong>Date:</strong> {{ data.timestamp }}
+    </div>
 
-    <h2>Experience Certificate</h2>
+    <div style="text-align: center;">
+        <h2>CERTIFICATE OF INTERNSHIP</h2>
+        <div class="certificate-subtitle">This is to certify that</div>
+    </div>
 
-    <div style="margin-bottom: 20px;">
-        <p style="font-size: 16px; margin: 0;"><strong>{{ data.full_name|title }}</strong></p>
-        <p style="margin: 0; color: #666;">Employee ID: {{ "%04d"|format(employee.id) if employee else data.employee_id }}</p>
+    <div class="recipient-name">
+        {{ data.full_name|title }}
     </div>
 
     <div class="content">
-        <p>This is to certify that <strong>{{ data.full_name|title }}</strong> was employed with <strong>{{ company.name }}</strong> as a <strong>{{ data.designation|title }}</strong>.</p>
+        <div class="certificate-text">
+            has successfully completed the internship program in 
+            <strong>{{ data.specialization or data.course or 'Computer Science' }}</strong> 
+            from <strong>{{ data.start_date }}</strong> to <strong>{{ data.end_date }}</strong> 
+            at <strong>{{ company.name }}</strong>.
+        </div>
         
-       <p>
-    The employee worked with us from 
-    <strong>
-        {% if data.joining_date and data.joining_date is not string %}
-            {{ data.joining_date.strftime('%d %B %Y') }}
-        {% else %}
-            {{ data.joining_date or '[N/A]' }}
-        {% endif %}
-    </strong> 
-    to 
-    <strong>
-        {% if data.relieving_date and data.relieving_date is not string %}
-            {{ data.relieving_date.strftime('%d %B %Y') }}
-        {% elif data.relieving_date %}
-            {{ data.relieving_date }}
-        {% else %}
-            Present
-        {% endif %}
-    </strong>.
-</p>
-
-        <p>During the tenure of employment, {{ data.full_name.split()[0] }} demonstrated professionalism, dedication, and commitment towards assigned responsibilities. The employee efficiently handled duties related to the role and maintained good conduct and teamwork within the organization.</p>
-
-        <p>We found {{ data.full_name.split()[0] }} to be sincere, hardworking, and a valuable contributor to the company. The services rendered were satisfactory during the period of employment.</p>
-
-        <p>We wish {{ data.full_name.split()[0] }} all the very best for future professional endeavors.</p>
+        <div class="internship-details">
+            <p><strong>📋 Internship Details:</strong></p>
+            <p>📅 <strong>Duration:</strong> {{ data.internship_duration }} months</p>
+            <p>🎓 <strong>Qualification:</strong> {{ data.qualification or 'N/A' }}</p>
+            <p>🏛️ <strong>Institution:</strong> {{ data.college_name or 'N/A' }}</p>
+            <p>👨‍🏫 <strong>Mentor:</strong> {{ data.mentor_name }} ({{ data.mentor_designation }})</p>
+            <p>💰 <strong>Stipend:</strong> ₹{{ "{:,.0f}".format(data.stipend) }} per month</p>
+        </div>
+        
+        <div class="certificate-text">
+            During the internship, <strong>{{ data.first_name }}</strong> demonstrated excellent technical skills, 
+            dedication, and professionalism. They actively contributed to project development 
+            and showed great enthusiasm for learning. Their performance was satisfactory and they 
+            successfully completed all assigned tasks within the stipulated timeframe.
+        </div>
+        
+        <div class="certificate-text">
+            We wish <strong>{{ data.first_name }}</strong> all the very best for their future academic and 
+            professional endeavors.
+        </div>
     </div>
 
     <div class="signature-section">
-        <div style="height: 80px;">
-            {% if company.signature %}
-                <img src="{{ request.url_root }}static/images/signatures/{{ company.signature }}" style="height: 80px; object-fit: contain;">
-            {% endif %}
+        <div class="signature">
+            <div class="signature-line"></div>
+            <p>
+                <strong>{{ data.hr_name }}</strong><br>
+                {{ data.hr_designation }}<br>
+                {{ company.name }}
+            </p>
         </div>
-        <p>
-            <strong>{{ company.hr_name }}</strong><br>
-            {{ company.hr_designation }}<br>
-            {{ company.name }}
-        </p>
+        <div class="signature">
+            <div class="signature-line"></div>
+            <p>
+                <strong>{{ data.mentor_name }}</strong><br>
+                Internship Mentor<br>
+                {{ company.name }}
+            </p>
+        </div>
+    </div>
+
+    <div class="seal">
+        COMPANY<br>SEAL
+    </div>
+
+    <div class="certificate-number">
+        Certificate No: {{ data.certificate_no }}
     </div>
 
     <div class="footer-note">

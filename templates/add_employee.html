@@ -4,10 +4,23 @@
 <div class="container py-4">
     <div class="card shadow">
         <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">➕ Add New Employee</h4>
+            <h4 class="mb-0">➕ Add New Member</h4>
         </div>
         <div class="card-body">
-            <form method="POST" action="{{ url_for('add_employee') }}" enctype="multipart/form-data">
+            <!-- Member Type Selection -->
+            <div class="mb-4">
+                <label class="form-label fw-bold">Member Type</label>
+                <div class="btn-group w-100" role="group">
+                    <input type="radio" class="btn-check" name="member_type" id="employee_type" value="employee" autocomplete="off" checked>
+                    <label class="btn btn-outline-primary" for="employee_type">👨‍💼 Employee</label>
+                    
+                    <input type="radio" class="btn-check" name="member_type" id="intern_type" value="intern" autocomplete="off">
+                    <label class="btn btn-outline-success" for="intern_type">🎓 Intern</label>
+                </div>
+            </div>
+            
+            <!-- Employee Form -->
+            <form method="POST" action="{{ url_for('add_employee') }}" enctype="multipart/form-data" id="employeeForm">
                 <div class="row">
                     <!-- Personal Information -->
                     <div class="col-12">
@@ -29,7 +42,16 @@
                         <label class="form-label">Phone</label>
                         <input type="text" name="phone" class="form-control">
                     </div>
-                                        
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Gender</label>
+                        <select name="gender" class="form-select">
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Aadhar Number</label>
                         <input type="text" name="aadhar_no" class="form-control">
@@ -50,28 +72,28 @@
                         <input type="file" name="profile_image" class="form-control" accept="image/*">
                     </div>
                     
-                    <!-- Employment Information -->
-                    <div class="col-12 mt-3">
+                    <!-- Employment Information (Employee Only) -->
+                    <div class="col-12 employee-only mt-3">
                         <h5 class="text-primary">Employment Information</h5>
                         <hr>
                     </div>
                     
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-6 mb-3 employee-only">
                         <label class="form-label">Designation *</label>
-                        <input type="text" name="designation" class="form-control" required>
+                        <input type="text" name="designation" class="form-control">
                     </div>
                     
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-6 mb-3 employee-only">
                         <label class="form-label">Department</label>
                         <input type="text" name="department" class="form-control">
                     </div>
                     
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-4 mb-3 employee-only">
                         <label class="form-label">CTC (Annual)</label>
                         <input type="number" name="ctc" class="form-control" step="0.01">
                     </div>
                     
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-4 mb-3 employee-only">
                         <label class="form-label">Increment per Month</label>
                         <input type="number" name="increment_per_month" class="form-control" step="0.01">
                     </div>
@@ -93,6 +115,57 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Resignation Date</label>
                         <input type="date" name="resignation_date" class="form-control">
+                    </div>
+                    
+                    <!-- Intern Information (Intern Only) -->
+                    <div class="col-12 intern-only mt-3" style="display: none;">
+                        <h5 class="text-success">Internship Information</h5>
+                        <hr>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Qualification</label>
+                        <input type="text" name="qualification" class="form-control" placeholder="e.g., B.Tech, MCA">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">College/University Name</label>
+                        <input type="text" name="college_name" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Course</label>
+                        <input type="text" name="course" class="form-control" placeholder="e.g., Computer Science">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Specialization</label>
+                        <input type="text" name="specialization" class="form-control" placeholder="e.g., Web Development">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Internship Duration (months)</label>
+                        <input type="number" name="internship_duration" class="form-control" value="3">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Stipend (per month)</label>
+                        <input type="number" name="stipend" class="form-control" step="0.01">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="start_date" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Mentor Name</label>
+                        <input type="text" name="mentor_name" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3 intern-only" style="display: none;">
+                        <label class="form-label">Mentor Designation</label>
+                        <input type="text" name="mentor_designation" class="form-control">
                     </div>
                     
                     <!-- Bank Details -->
@@ -128,11 +201,47 @@
                 </div>
                 
                 <div class="mt-4">
-                    <button type="submit" class="btn btn-primary">Save Employee</button>
+                    <button type="submit" class="btn btn-primary">Save Member</button>
                     <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancel</a>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+    // Toggle between Employee and Intern forms
+    const employeeType = document.getElementById('employee_type');
+    const internType = document.getElementById('intern_type');
+    const employeeFields = document.querySelectorAll('.employee-only');
+    const internFields = document.querySelectorAll('.intern-only');
+    
+    function toggleFormFields() {
+        if (employeeType.checked) {
+            employeeFields.forEach(field => field.style.display = 'block');
+            internFields.forEach(field => field.style.display = 'none');
+            document.querySelector('.employee-only h5').style.display = 'block';
+        } else {
+            employeeFields.forEach(field => field.style.display = 'none');
+            internFields.forEach(field => field.style.display = 'block');
+        }
+    }
+    
+    employeeType.addEventListener('change', toggleFormFields);
+    internType.addEventListener('change', toggleFormFields);
+    
+    // Set end date based on start date and duration
+    document.querySelector('input[name="start_date"]')?.addEventListener('change', function() {
+        const startDate = new Date(this.value);
+        const duration = parseInt(document.querySelector('input[name="internship_duration"]')?.value || 3);
+        if (startDate && !isNaN(startDate)) {
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + duration);
+            const endDateInput = document.querySelector('input[name="end_date"]');
+            if (endDateInput) {
+                endDateInput.value = endDate.toISOString().split('T')[0];
+            }
+        }
+    });
+</script>
 {% endblock %}
