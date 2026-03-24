@@ -77,6 +77,7 @@
             display: flex;
             align-items: flex-start;
             gap: 15px;
+            margin-bottom: 20px;
         }
 
         .profile-icon {
@@ -96,7 +97,7 @@
         .subject {
             font-weight: bold;
             font-size: 16px;
-            margin-bottom: 6px;
+            margin-bottom: 12px;
         }
 
         .header {
@@ -106,6 +107,7 @@
         .header-row {
             font-size: 13px;
             margin-bottom: 3px;
+            line-height: 1.4;
         }
 
         .label {
@@ -129,31 +131,54 @@
 
         .message {
             margin-top: 5px;
-            white-space: pre-line;
+            margin-bottom: 25px;
+        }
+
+        .message p {
+            margin: 0 0 12px 0;
+            line-height: 1.5;
         }
 
         .signature {
-            margin-top: 10px;
-            white-space: pre-line;
+            margin-top: 25px;
+            margin-bottom: 30px;
+        }
+
+        .signature p {
+            margin: 0 0 5px 0;
+            line-height: 1.5;
         }
 
         .quote-header {
-            margin-top: 35px;
-            font-size: 13px;
-            page-break-before: auto;
+            margin-top: 30px;
+            padding: 10px 12px;
             background: #f8f9fa;
-            padding: 8px 12px;
             border-left: 3px solid #1a73e8;
+            font-size: 13px;
         }
 
         .quote {
-            margin-top: 10px;
-            white-space: pre-line;
-            color: #1a4fa3;
-            background: #fefefe;
+            margin-top: 8px;
             padding: 15px;
+            background: #fefefe;
             border: 1px solid #e0e0e0;
             border-radius: 4px;
+            white-space: pre-line;
+            line-height: 1.5;
+        }
+
+        .quote p {
+            margin: 0 0 8px 0;
+        }
+
+        .quote p:last-child {
+            margin-bottom: 0;
+        }
+
+        hr {
+            margin: 20px 0;
+            border: none;
+            border-top: 1px solid #eee;
         }
 
         @media print {
@@ -196,7 +221,7 @@
                 <img src="{{ url_for('static', filename='profile_icon.png') }}" alt="Profile Icon">
             </div>
             
-            <div>
+            <div style="flex: 1;">
                 <div class="subject">
                     Re: Letter of Resignation - {{ data.full_name }}
                 </div>
@@ -226,7 +251,7 @@
                     <div class="header-row">
                         <span class="label">Date</span>
                         <span class="date">
-                            {{ data.timestamp }}
+                            {{ data.acceptance_date }}
                         </span>
                     </div>
                 </div>
@@ -237,11 +262,11 @@
         <div class="message">
             <p>Dear {{ data.first_name }},</p>
             
-            <p>Let me inform you that your letter of resignation is accepted and
-            as per your request you will be relieved from the services of the
-            organization on <strong>{{ data.relieving_date }}</strong>. It has been a pleasure to work with
-            you, and on behalf of our entire organization, I would like to
-            wish you the best in future endeavors.</p>
+            <p>This is to acknowledge receipt of your resignation letter dated <strong>{{ data.resignation_date }}</strong>.</p>
+            
+            <p>We have accepted your resignation. As per the company policy, your last working day will be <strong>{{ data.relieving_date }}</strong>.</p>
+            
+            <p>We appreciate your contributions during your tenure and wish you all the best in your future endeavors.</p>
         </div>
         
         <!-- SIGNATURE -->
@@ -255,11 +280,11 @@
         <!-- QUOTED RESIGNATION EMAIL (DYNAMIC) -->
         {% if data.resignation_email and data.resignation_email.strip() %}
         <div class="quote-header">
-            On {{ data.resignation_email_datetime }},
+            On <strong>{{ data.resignation_email_datetime }}</strong>,
             <span class="email">{{ data.employee_email }}</span> wrote:
         </div>
         <div class="quote">
-            {{ data.resignation_email }}
+            {{ data.resignation_email|safe }}
         </div>
         {% endif %}
         

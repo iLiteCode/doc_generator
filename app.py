@@ -136,6 +136,7 @@ class Employee(db.Model):
     relieving_date = db.Column(db.Date, nullable=True)  # To store calculated relieving date for resignation acceptance letter
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=True)
     company = db.relationship('Company', backref='employees')
+    resignation_acceptance_date = db.Column(db.Date, nullable=True)
     
     # Bank Details
     account_holder = db.Column(db.String(100))
@@ -255,25 +256,46 @@ class InternDocument(db.Model):
 
 #==================helper functions========================
 def get_company_domain(company):
-    """Safely get company domain from company object"""
+    """Get company domain from company object"""
     if not company:
-        return 'company.com'
+        print("⚠️ No company provided")
+        return "company.com"  # Default fallback
     
-    # Check if email_domain field exists and has value
+    # Check if company has an email_domain field (this is what your model uses)
     if hasattr(company, 'email_domain') and company.email_domain:
+        print(f"✅ Using company.email_domain: {company.email_domain}")
         return company.email_domain
     
-    # Try to extract from company email
-    if company.email and '@' in company.email:
-        return company.email.split('@')[-1]
+    # Check if company has a domain field (for backward compatibility)
+    if hasattr(company, 'domain') and company.domain:
+        print(f"✅ Using company.domain: {company.domain}")
+        return company.domain
     
-    # Try to extract from company website
-    if company.website:
-        website = company.website.replace('http://', '').replace('https://', '').replace('www.', '')
-        return website.split('/')[0]
+    # Check if company has an email field
+    if hasattr(company, 'email') and company.email and '@' in company.email:
+        domain = company.email.split('@')[1]
+        print(f"✅ Extracted domain from company email: {domain}")
+        return domain
     
-    # Default fallback
-    return 'company.com'
+    # Check if company has a website field
+    if hasattr(company, 'website') and company.website:
+        # Extract domain from website (e.g., https://litecode.com -> litecode.com)
+        website = company.website
+        website = website.replace('https://', '').replace('http://', '').replace('www.', '')
+        domain = website.split('/')[0]
+        print(f"✅ Extracted domain from website: {domain}")
+        return domain
+    
+    # Fallback: use company name to generate domain
+    if company.name:
+        # Convert company name to domain format
+        domain = company.name.lower().replace(' ', '').replace('pvt', '').replace('ltd', '').replace('.', '')
+        domain = domain + '.com'
+        print(f"⚠️ Generated domain from company name: {domain}")
+        return domain
+    
+    print("⚠️ No domain found, using default")
+    return "company.com"  # Default fallback
 
 def get_hr_email(company):
     """Get HR email from company or generate from domain"""
@@ -289,32 +311,24 @@ def get_hr_email(company):
     return f"hr@{domain}"
 
 def get_employee_email(employee, company):
-    """Generate employee email from name and company domain"""
-    if not employee:
-        return ''
+    """Get employee email - generate company email if only personal email exists"""
+    # Generate company email format
+    name_parts = employee.full_name.split()
+    first_name = name_parts[0].lower() if name_parts else ''
+    last_name = name_parts[-1].lower() if len(name_parts) > 1 else ''
+    company_domain = get_company_domain(company)
     
-    # Use employee's email if available and it matches company domain
-    if employee.email:
-        # If employee has an email, check if we should use it or generate new one
-        company_domain = get_company_domain(company)
+    # Create company email
+    generated_email = f"{first_name}.{last_name}@{company_domain}"
+    
+    # If employee has a stored email and it matches the company domain, use it
+    if employee.email and '@' in employee.email:
+        # Check if it's a company email (contains company domain)
         if company_domain in employee.email:
             return employee.email
-        # If email doesn't match company domain, generate new one
-        # (optional - you can remove this if you want to keep existing email)
     
-    # Generate from name and company domain
-    if employee.full_name:
-        name_parts = employee.full_name.split()
-        if len(name_parts) >= 2:
-            first_name = name_parts[0].lower()
-            last_name = name_parts[-1].lower()
-            domain = get_company_domain(company)
-            return f"{first_name}.{last_name}@{domain}"
-        elif len(name_parts) == 1:
-            domain = get_company_domain(company)
-            return f"{name_parts[0].lower()}@{domain}"
-    
-    return ''
+    # Otherwise return the generated company email
+    return generated_email
 
 def get_google_flow(state=None):
     """Create and return a Google OAuth flow object"""
@@ -516,41 +530,41 @@ def calculate_annual_income_tax(annual_ctc):
         return 112500 + (taxable_income - 1000000) * 0.3
 
 #function for production
-def html_to_pdf(html_content, output_path):
-    try:
-        HTML(string=html_content).write_pdf(output_path)
-        return True
-    except Exception as e:
-        print("WeasyPrint error:", e)
-        return False
+# def html_to_pdf(html_content, output_path):
+#     try:
+#         HTML(string=html_content).write_pdf(output_path)
+#         return True
+#     except Exception as e:
+#         print("WeasyPrint error:", e)
+#         return False
 
 #local function
-# def html_to_pdf(html_content, output_path):
-#     # Path to the standalone WeasyPrint executable (for local Windows)
-#     weasyprint_path = os.path.join(app.root_path, 'weasyprint', 'weasyprint.exe')
+def html_to_pdf(html_content, output_path):
+    # Path to the standalone WeasyPrint executable (for local Windows)
+    weasyprint_path = os.path.join(app.root_path, 'weasyprint', 'weasyprint.exe')
     
-#     with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
-#         f.write(html_content)
-#         temp_html_path = f.name
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
+        f.write(html_content)
+        temp_html_path = f.name
 
-#     try:
-#         result = subprocess.run(
-#             [weasyprint_path, temp_html_path, output_path],
-#             capture_output=True,
-#             text=True,
-#             timeout=30
-#         )
-#         if result.returncode == 0:
-#             return True
-#         else:
-#             print("WeasyPrint error:", result.stderr)
-#             return False
-#     except Exception as e:
-#         print("WeasyPrint exception:", e)
-#         return False
-#     finally:
-#         if os.path.exists(temp_html_path):
-#             os.unlink(temp_html_path)
+    try:
+        result = subprocess.run(
+            [weasyprint_path, temp_html_path, output_path],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        if result.returncode == 0:
+            return True
+        else:
+            print("WeasyPrint error:", result.stderr)
+            return False
+    except Exception as e:
+        print("WeasyPrint exception:", e)
+        return False
+    finally:
+        if os.path.exists(temp_html_path):
+            os.unlink(temp_html_path)
 
 @app.template_filter('humanize')
 def humanize_filter(value):
@@ -653,6 +667,30 @@ def preview():
         hr_email = get_hr_email(company)
         employee_email = get_employee_email(employee, company)
         
+        # Format resignation_date
+        formatted_resignation_date = ""
+        if employee.resignation_date:
+            if isinstance(employee.resignation_date, datetime):
+                formatted_resignation_date = employee.resignation_date.strftime('%d %B %Y')
+            else:
+                formatted_resignation_date = employee.resignation_date.strftime('%d %B %Y')
+        
+        # Format acceptance_date
+        formatted_acceptance_date = ""
+        if employee.resignation_acceptance_date:
+            if isinstance(employee.resignation_acceptance_date, datetime):
+                formatted_acceptance_date = employee.resignation_acceptance_date.strftime('%d %B %Y')
+            else:
+                formatted_acceptance_date = employee.resignation_acceptance_date.strftime('%d %B %Y')
+        
+        # If acceptance_date is not set, calculate it
+        if not formatted_acceptance_date and employee.resignation_date:
+            if isinstance(employee.resignation_date, datetime):
+                calc_date = employee.resignation_date.date() + timedelta(days=3)
+            else:
+                calc_date = employee.resignation_date + timedelta(days=3)
+            formatted_acceptance_date = calc_date.strftime('%d %B %Y')
+
         data = {
             'timestamp': datetime.now().strftime('%d %B %Y'),
             'full_name': employee.full_name,
@@ -661,6 +699,8 @@ def preview():
             'company_name': company.name,
             'company_domain': company_domain,
             'hr_email': hr_email,
+            'acceptance_date': formatted_acceptance_date,  
+            'resignation_date': formatted_resignation_date,  
             'relieving_date': employee.relieving_date.strftime('%d %B %Y'),
             'hr_name': company.hr_name or 'HR Department',
             'hr_designation': company.hr_designation or 'HR Manager',
@@ -678,7 +718,7 @@ def preview():
     # ========== END RESIGNATION ACCEPTANCE HANDLER ==========
 
     # ========== INTERN DOCUMENTS HANDLER ==========
-    if doc_type in ['intern_offer_letter', 'certificate_of_internship']:
+    if form_data.get('document_type') in ['intern_offer_letter', 'certificate_of_internship']:
         # Get intern from database
         intern_id = form_data.get('intern_id')
         intern = None
@@ -719,20 +759,21 @@ def preview():
                 start_date = intern.start_date.date()
             else:
                 start_date = intern.start_date
-        offer_date = start_date - timedelta(days=5)
-        formatted_offer_date = offer_date.strftime('%d %B %Y')
-        
-        # Use the actual start date from database (whether past or future)
-        if intern.start_date:
-            formatted_joining_date = intern.start_date.strftime('%d %B %Y')
+            offer_date = start_date - timedelta(days=5)
+            formatted_offer_date = offer_date.strftime('%d %B %Y')
+            
+            formatted_joining_date = start_date.strftime('%d %B %Y')
             print(f"📅 Using joining date: {formatted_joining_date}")
+            
+            # Acceptance deadline (5 days after joining date)
+            acceptance_deadline = start_date + timedelta(days=5)
+            formatted_acceptance_deadline = acceptance_deadline.strftime('%d %B %Y')
         else:
+            # If no start date, use current date
             formatted_joining_date = 'To be confirmed'
+            formatted_offer_date = datetime.now().strftime('%d %B %Y')
+            formatted_acceptance_deadline = (datetime.now() + timedelta(days=5)).strftime('%d %B %Y')
             print(f"⚠️ No start date found")
-        
-        # Acceptance deadline (5 days after offer date)
-        acceptance_deadline = start_date + timedelta(days=5)
-        formatted_acceptance_deadline = acceptance_deadline.strftime('%d %B %Y')
         
         print(f"📅 Offer Date: {formatted_offer_date}")
         print(f"📅 Joining Date: {formatted_joining_date}")
@@ -767,7 +808,7 @@ def preview():
         }
         
         return render_template(
-            f'documents/{doc_type}.html',
+            f'documents/{form_data.get("document_type")}.html',
             data=data,
             company=company,
             watermark_logo=company.logo,
@@ -1039,6 +1080,30 @@ def preview_document(doc_type):
         hr_email = get_hr_email(company)
         employee_email = get_employee_email(employee, company)
         
+        # Format resignation_date
+        formatted_resignation_date = ""
+        if employee.resignation_date:
+            if isinstance(employee.resignation_date, datetime):
+                formatted_resignation_date = employee.resignation_date.strftime('%d %B %Y')
+            else:
+                formatted_resignation_date = employee.resignation_date.strftime('%d %B %Y')
+        
+        # Format acceptance_date
+        formatted_acceptance_date = ""
+        if employee.resignation_acceptance_date:
+            if isinstance(employee.resignation_acceptance_date, datetime):
+                formatted_acceptance_date = employee.resignation_acceptance_date.strftime('%d %B %Y')
+            else:
+                formatted_acceptance_date = employee.resignation_acceptance_date.strftime('%d %B %Y')
+        
+        # If acceptance_date is not set, calculate it
+        if not formatted_acceptance_date and employee.resignation_date:
+            if isinstance(employee.resignation_date, datetime):
+                calc_date = employee.resignation_date.date() + timedelta(days=3)
+            else:
+                calc_date = employee.resignation_date + timedelta(days=3)
+            formatted_acceptance_date = calc_date.strftime('%d %B %Y')
+
         data = {
             'timestamp': datetime.now().strftime('%d %B %Y'),
             'full_name': employee.full_name,
@@ -1047,6 +1112,8 @@ def preview_document(doc_type):
             'company_name': company.name,
             'company_domain': company_domain,
             'hr_email': hr_email,
+            'acceptance_date': formatted_acceptance_date,  
+            'resignation_date': formatted_resignation_date,  
             'relieving_date': employee.relieving_date.strftime('%d %B %Y'),
             'hr_name': company.hr_name or 'HR Department',
             'hr_designation': company.hr_designation or 'HR Manager',
@@ -1328,7 +1395,31 @@ def generate():
         company_domain = get_company_domain(company)
         hr_email = get_hr_email(company)
         employee_email = get_employee_email(employee, company)
-                    
+
+        # Format resignation_date
+        formatted_resignation_date = ""
+        if employee.resignation_date:
+            if isinstance(employee.resignation_date, datetime):
+                formatted_resignation_date = employee.resignation_date.strftime('%d %B %Y')
+            else:
+                formatted_resignation_date = employee.resignation_date.strftime('%d %B %Y')
+        
+        # Format acceptance_date
+        formatted_acceptance_date = ""
+        if employee.resignation_acceptance_date:
+            if isinstance(employee.resignation_acceptance_date, datetime):
+                formatted_acceptance_date = employee.resignation_acceptance_date.strftime('%d %B %Y')
+            else:
+                formatted_acceptance_date = employee.resignation_acceptance_date.strftime('%d %B %Y')
+        
+        # If acceptance_date is not set, calculate it
+        if not formatted_acceptance_date and employee.resignation_date:
+            if isinstance(employee.resignation_date, datetime):
+                calc_date = employee.resignation_date.date() + timedelta(days=3)
+            else:
+                calc_date = employee.resignation_date + timedelta(days=3)
+            formatted_acceptance_date = calc_date.strftime('%d %B %Y')
+
         data = {
             'timestamp': datetime.now().strftime('%d %B %Y'),
             'full_name': employee.full_name,
@@ -1337,6 +1428,8 @@ def generate():
             'company_name': company.name,
             'company_domain': company_domain,
             'hr_email':hr_email,
+            'acceptance_date': formatted_acceptance_date,  
+            'resignation_date': formatted_resignation_date,
             'relieving_date': employee.relieving_date.strftime('%d %B %Y'),
             'hr_name': company.hr_name or 'HR Department',
             'hr_designation': company.hr_designation or 'HR Manager',
@@ -2825,30 +2918,144 @@ def generate_resignation_acceptance(emp_id):
         
         company = employee.company
         
-        # Prepare data for template with safe defaults
-        name_parts = employee.full_name.split() if employee.full_name else ['']
-        first_name = name_parts[0] if name_parts else ''
-        last_name = name_parts[-1] if len(name_parts) > 1 else ''
+        # ========== FORMAT ALL DATES PROPERLY ==========
         
-        # Get company domain using helper function
+        # CRITICAL FIX: Convert all dates to string format properly
+        formatted_resignation_date = ""
+        formatted_acceptance_date = ""
+        formatted_relieving_date = ""
+        formatted_resignation_datetime = ""
+        
+        # 1. Resignation Date - FIXED
+        if employee.resignation_date:
+            try:
+                if isinstance(employee.resignation_date, datetime):
+                    resignation_date_obj = employee.resignation_date.date()
+                else:
+                    resignation_date_obj = employee.resignation_date
+                formatted_resignation_date = resignation_date_obj.strftime('%d %B %Y')
+                print(f"✅ Formatted resignation_date: '{formatted_resignation_date}'")
+            except Exception as e:
+                print(f"Error formatting resignation_date: {e}")
+                formatted_resignation_date = str(employee.resignation_date)
+        else:
+            print("⚠️ No resignation_date found in database")
+            formatted_resignation_date = ""
+        
+        # 2. Acceptance Date - FIXED
+        if employee.resignation_acceptance_date:
+            try:
+                if isinstance(employee.resignation_acceptance_date, datetime):
+                    acceptance_date_obj = employee.resignation_acceptance_date.date()
+                else:
+                    acceptance_date_obj = employee.resignation_acceptance_date
+                formatted_acceptance_date = acceptance_date_obj.strftime('%d %B %Y')
+                print(f"✅ Formatted acceptance_date: '{formatted_acceptance_date}'")
+            except Exception as e:
+                print(f"Error formatting acceptance_date: {e}")
+                formatted_acceptance_date = str(employee.resignation_acceptance_date)
+        else:
+            print("⚠️ No acceptance_date found in database")
+            # Calculate from resignation date if available
+            if employee.resignation_date:
+                try:
+                    if isinstance(employee.resignation_date, datetime):
+                        resignation_for_calc = employee.resignation_date.date()
+                    else:
+                        resignation_for_calc = employee.resignation_date
+                    calculated_acceptance = resignation_for_calc + timedelta(days=3)
+                    formatted_acceptance_date = calculated_acceptance.strftime('%d %B %Y')
+                    print(f"⚠️ Calculated acceptance_date: '{formatted_acceptance_date}'")
+                except Exception as e:
+                    print(f"Error calculating acceptance_date: {e}")
+                    formatted_acceptance_date = datetime.now().strftime('%d %B %Y')
+            else:
+                formatted_acceptance_date = datetime.now().strftime('%d %B %Y')
+        
+        # 3. Relieving Date - FIXED
+        if employee.relieving_date:
+            try:
+                if isinstance(employee.relieving_date, datetime):
+                    relieving_date_obj = employee.relieving_date.date()
+                else:
+                    relieving_date_obj = employee.relieving_date
+                formatted_relieving_date = relieving_date_obj.strftime('%d %B %Y')
+                print(f"✅ Formatted relieving_date: '{formatted_relieving_date}'")
+            except Exception as e:
+                print(f"Error formatting relieving_date: {e}")
+                formatted_relieving_date = str(employee.relieving_date)
+        else:
+            print("⚠️ No relieving_date found")
+            formatted_relieving_date = ""
+        
+        # 4. Resignation Email DateTime - FIXED
+        if employee.resignation_datetime:
+            try:
+                if isinstance(employee.resignation_datetime, datetime):
+                    formatted_resignation_datetime = employee.resignation_datetime.strftime('%d %B %Y at %I:%M %p')
+                else:
+                    formatted_resignation_datetime = str(employee.resignation_datetime)
+                print(f"✅ Formatted resignation_datetime: '{formatted_resignation_datetime}'")
+            except Exception as e:
+                print(f"Error formatting resignation_datetime: {e}")
+                formatted_resignation_datetime = str(employee.resignation_datetime)
+        else:
+            formatted_resignation_datetime = ""
+        
+        # 5. Employee Email - Always generate company email for official documents
+        name_parts = employee.full_name.split()
+        first_name_part = name_parts[0].lower() if name_parts else ''
+        last_name_part = name_parts[-1].lower() if len(name_parts) > 1 else ''
         company_domain = get_company_domain(company)
-        hr_email = get_hr_email(company)
-        employee_email = get_employee_email(employee, company)
+        employee_email = f"{first_name_part}.{last_name_part}@{company_domain}"
+
+        # Store personal email separately if needed for other purposes
+        personal_email = employee.email  # Keep this for reference
         
+        # 6. First Name
+        name_parts = employee.full_name.split()
+        first_name = name_parts[0] if name_parts else ''
+        
+        # 7. HR Email
+        hr_email = get_hr_email(company)
+        
+        # 8. Resignation Email Content
+        resignation_email_content = employee.resignation_email_content or ''
+        
+        # Build data dictionary - MAKE SURE ALL STRINGS ARE PROPERLY SET
         data = {
-            'timestamp': datetime.now().strftime('%d %B %Y'),
+            'timestamp': formatted_acceptance_date,
             'full_name': employee.full_name,
             'first_name': first_name,
             'employee_email': employee_email,
             'company_name': company.name,
-            'company_domain': company_domain,
+            'company_domain': get_company_domain(company),
             'hr_email': hr_email,
-            'relieving_date': employee.relieving_date.strftime('%d %B %Y'),
+            'relieving_date': formatted_relieving_date,
+            'acceptance_date': formatted_acceptance_date,
             'hr_name': company.hr_name or 'HR Department',
             'hr_designation': company.hr_designation or 'HR Manager',
-            'resignation_email': employee.resignation_email_content or '',
-            'resignation_email_datetime': employee.resignation_datetime.strftime('%d %B %Y at %I:%M %p') if employee.resignation_datetime else ''
+            'resignation_email': resignation_email_content,
+            'resignation_email_datetime': formatted_resignation_datetime,
+            'resignation_date': formatted_resignation_date  # CRITICAL: This must match template
         }
+        
+        print("\n" + "="*60)
+        print("📦 FINAL DATA DICTIONARY BEING SENT TO TEMPLATE:")
+        print("="*60)
+        for key, value in data.items():
+            print(f"   {key}: '{value}'")
+        print("="*60 + "\n")
+        
+        # Check specifically for empty values
+        if not data['acceptance_date']:
+            print("⚠️ WARNING: acceptance_date is empty!")
+            data['acceptance_date'] = datetime.now().strftime('%d %B %Y')
+            print(f"   Set to current date: {data['acceptance_date']}")
+        
+        if not data['resignation_date']:
+            print("⚠️ WARNING: resignation_date is empty!")
+            data['resignation_date'] = "Not specified"
         
         # Store in session for preview
         session['form_data'] = {
@@ -2923,37 +3130,68 @@ def save_resignation_details(emp_id):
         return redirect(url_for('view_employee', emp_id=emp_id))
 
     resignation_date_str = request.form.get('resignation_date')
-    relieving_date_str = request.form.get('relieving_date')
-
     if not resignation_date_str:
         flash('Resignation date is required.', 'danger')
         return redirect(url_for('view_employee', emp_id=emp_id))
 
     try:
-        # Convert resignation date
+        # =========================
+        # DATE CALCULATIONS
+        # =========================
         resignation_date = datetime.strptime(resignation_date_str, '%Y-%m-%d').date()
         employee.resignation_date = resignation_date
 
-        # Determine relieving date
-        if relieving_date_str and relieving_date_str.strip():
-            relieving_date = datetime.strptime(relieving_date_str, '%Y-%m-%d').date()
-        else:
-            # Get notice period from company or default to 30 days
-            notice_period = int(company.notice_period) if company.notice_period else 30
-            relieving_date = resignation_date + timedelta(days=notice_period)
+        acceptance_date = resignation_date + timedelta(days=3)
+        employee.resignation_acceptance_date = acceptance_date
+
+        relieving_date = acceptance_date + timedelta(days=15)
         employee.relieving_date = relieving_date
 
-        # Mark status and timestamp
         employee.status = 'resigned'
-        employee.resignation_datetime = datetime.now()
 
-        # Assign the selected company to the employee
+        # Resignation email sent 3 days before
+        email_sent_date = resignation_date - timedelta(days=3)
+        resignation_datetime = datetime.combine(email_sent_date, datetime.min.time())
+        resignation_datetime = resignation_datetime.replace(hour=10, minute=0)
+        employee.resignation_datetime = resignation_datetime
+
+        # Assign company
         employee.company_id = company.id
 
-        # 🔥 ALWAYS REGENERATE resignation email content with the selected company
-        employee.resignation_email_content = f"""Dear HR,
+        # =========================
+        # EMAIL GENERATION (FIXED)
+        # =========================
+        company_domain = get_company_domain(company)
 
-I am writing to formally resign from my position as {employee.designation or 'Employee'} at {company.name}, effective from {resignation_date.strftime('%d %B %Y')}.
+        if not company_domain:
+            raise ValueError("Company domain is missing")
+
+        # Clean name parsing
+        name_parts = employee.full_name.strip().split() if employee.full_name else []
+
+        first_name = name_parts[0].lower() if len(name_parts) >= 1 else "employee"
+        last_name = name_parts[-1].lower() if len(name_parts) >= 2 else ""
+
+        # Generate company email safely
+        if last_name:
+            company_email = f"{first_name}.{last_name}@{company_domain}"
+        else:
+            company_email = f"{first_name}@{company_domain}"
+
+        # Personal email (if exists)
+        personal_email = employee.email if employee.email else ""
+
+        # Use personal email in resignation signature (real-world behavior)
+        email_for_signature = personal_email if personal_email else company_email
+
+        # =========================
+        # EMAIL CONTENT
+        # =========================
+        formatted_resignation_date = resignation_date.strftime('%d %B %Y')
+
+        resignation_email_content = f"""Dear HR,
+
+I am writing to formally resign from my position as {employee.designation or 'Employee'} at {company.name}, effective from {formatted_resignation_date}.
 
 I have decided to pursue other opportunities and would like to thank you for the support and opportunities provided during my tenure.
 
@@ -2962,14 +3200,28 @@ I will ensure a smooth handover of my responsibilities before my departure. Plea
 Thank you for the guidance and support.
 
 Thanks and Regards,
-{employee.full_name}"""
+{employee.full_name}
+{email_for_signature}"""
+
+        employee.resignation_email_content = resignation_email_content
+
+        # =========================
+        # DEBUG (optional but useful)
+        # =========================
+        print("\n====== DEBUG EMAIL GENERATION ======")
+        print("Full Name:", employee.full_name)
+        print("Company Domain:", company_domain)
+        print("Generated Company Email:", company_email)
+        print("Personal Email:", personal_email)
+        print("Final Signature Email:", email_for_signature)
+        print("===================================\n")
 
         db.session.commit()
-        
-        # Clear session data to force refresh
+
+        # Clear session cache
         if 'form_data' in session:
             session.pop('form_data')
-        
+
         flash('Resignation details saved successfully.', 'success')
 
     except Exception as e:
