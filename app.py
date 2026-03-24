@@ -516,41 +516,41 @@ def calculate_annual_income_tax(annual_ctc):
         return 112500 + (taxable_income - 1000000) * 0.3
 
 #function for production
-# def html_to_pdf(html_content, output_path):
-#     try:
-#         HTML(string=html_content).write_pdf(output_path)
-#         return True
-#     except Exception as e:
-#         print("WeasyPrint error:", e)
-#         return False
+def html_to_pdf(html_content, output_path):
+    try:
+        HTML(string=html_content).write_pdf(output_path)
+        return True
+    except Exception as e:
+        print("WeasyPrint error:", e)
+        return False
 
 #local function
-def html_to_pdf(html_content, output_path):
-    # Path to the standalone WeasyPrint executable (for local Windows)
-    weasyprint_path = os.path.join(app.root_path, 'weasyprint', 'weasyprint.exe')
+# def html_to_pdf(html_content, output_path):
+#     # Path to the standalone WeasyPrint executable (for local Windows)
+#     weasyprint_path = os.path.join(app.root_path, 'weasyprint', 'weasyprint.exe')
     
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
-        f.write(html_content)
-        temp_html_path = f.name
+#     with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
+#         f.write(html_content)
+#         temp_html_path = f.name
 
-    try:
-        result = subprocess.run(
-            [weasyprint_path, temp_html_path, output_path],
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        if result.returncode == 0:
-            return True
-        else:
-            print("WeasyPrint error:", result.stderr)
-            return False
-    except Exception as e:
-        print("WeasyPrint exception:", e)
-        return False
-    finally:
-        if os.path.exists(temp_html_path):
-            os.unlink(temp_html_path)
+#     try:
+#         result = subprocess.run(
+#             [weasyprint_path, temp_html_path, output_path],
+#             capture_output=True,
+#             text=True,
+#             timeout=30
+#         )
+#         if result.returncode == 0:
+#             return True
+#         else:
+#             print("WeasyPrint error:", result.stderr)
+#             return False
+#     except Exception as e:
+#         print("WeasyPrint exception:", e)
+#         return False
+#     finally:
+#         if os.path.exists(temp_html_path):
+#             os.unlink(temp_html_path)
 
 @app.template_filter('humanize')
 def humanize_filter(value):
