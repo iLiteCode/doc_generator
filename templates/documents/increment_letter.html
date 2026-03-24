@@ -9,7 +9,7 @@
             </button>
         </form>
 
-        <!-- NEW: Download & Upload to Drive Button -->
+        <!-- Download & Upload to Drive Button -->
         <form action="{{ url_for('generate') }}" method="POST" class="action-form">
             <input type="hidden" name="upload_to_drive" value="true">
             <button type="submit" class="btn btn-success">
@@ -33,37 +33,40 @@
 </div>
 
 <style>
-   /* ================= ACTION BAR ================= */
-
-.action-bar{
-    background:white;
-    padding:15px 0;
-    border-bottom:1px solid #000;
+/* ================= ACTION BAR ================= */
+.action-bar {
+    background: white;
+    padding: 15px 0;
+    border-bottom: 1px solid #000;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 }
 
-.action-bar-container{
-    max-width:1000px;
-    margin:auto;
-    display:flex;
-    justify-content:flex-end;
-    gap:10px;
-    padding:0 20px;
-    flex-wrap: wrap;          /* allows wrapping on small screens */
+.action-bar-container {
+    max-width: 1000px;
+    margin: auto;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 0 20px;
+    flex-wrap: wrap;
 }
-.action-form{
+
+.action-form {
     margin: 0;
     padding: 0;
 }
 
-.btn{
-    padding:10px 18px;
-    border:1px solid #000;
-    border-radius:4px;
-    font-size:14px;
-    cursor:pointer;
-    font-weight:500;
-    background:white;
-    color:black;
+.btn {
+    padding: 10px 18px;
+    border: 1px solid #000;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 500;
+    background: white;
+    color: black;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
@@ -71,18 +74,17 @@
     transition: background-color 0.2s;
 }
 
-.btn:hover{
-    background:#e9e9e9;
+.btn:hover {
+    background: #e9e9e9;
 }
 
-/* Override any colored button classes to use the same border‑only style */
 .btn-primary,
 .btn-success,
 .btn-secondary,
 .btn-danger {
     background: white !important;
     color: black !important;
-    border:1px solid #000 !important;
+    border: 1px solid #000 !important;
     box-shadow: none !important;
 }
 
@@ -90,117 +92,22 @@
 .btn-success:hover,
 .btn-secondary:hover,
 .btn-danger:hover {
-    background:#e9e9e9 !important;
+    background: #e9e9e9 !important;
 }
 
-    /* Hide buttons in print mode */
-    @media print {
-        .action-bar {
-            display: none !important;
-        }
+/* Hide buttons in print mode */
+@media print {
+    .action-bar {
+        display: none !important;
     }
+}
 
-    @page {
-        size: A4;
-        margin: 2cm;          /* Adjust as needed: top, bottom, left, right */
-    }
+@page {
+    size: A4;
+    margin: 1.5cm;
+}
 
-    /* Responsive Design */
-    @media (max-width: 768px) {
-        .action-bar-container {
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn {
-            padding: 10px 16px;
-            font-size: 14px;
-        }
-
-        .btn-text {
-            display: inline-block;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .btn {
-            padding: 8px 12px;
-        }
-        
-        .btn-text {
-            display: none;
-        }
-        
-        .btn-icon {
-            font-size: 20px;
-            margin: 0;
-        }
-    }
-
-    /* Salary Breakdown Styles */
-    .salary-breakdown {
-        margin: 30px 0;
-        padding: 20px;
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border-radius: 12px;
-        border-left: 6px solid #28a745;
-    }
-
-    .salary-breakdown h4 {
-        color: #28a745;
-        margin-bottom: 20px;
-        font-size: 18px;
-        font-weight: 600;
-    }
-
-    .salary-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 15px;
-    }
-
-    .salary-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 10px;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-
-    .salary-label {
-        color: #6c757d;
-        font-weight: 500;
-    }
-
-    .salary-value {
-        font-weight: 600;
-        color: #28a745;
-    }
-
-    .total-ctc {
-        margin-top: 20px;
-        padding: 15px;
-        background: white;
-        border-radius: 8px;
-        text-align: center;
-        border: 2px dashed #28a745;
-    }
-
-    .total-ctc .label {
-        color: #6c757d;
-        font-size: 14px;
-    }
-
-    .total-ctc .value {
-        font-size: 24px;
-        font-weight: 700;
-        color: #28a745;
-    }
-
-    /* ================= LETTERHEAD ================= */
-
+/* ================= LETTERHEAD - MATCHING RELIEVING LETTER STYLES ================= */
 .letter-header {
     display: flex;
     justify-content: space-between;
@@ -235,12 +142,14 @@
     font-size: 20px;
     font-weight: bold;
     color: #000;
+    margin: 0;
 }
 
 .company-address {
     font-size: 11px;
     color: #666;
     line-height: 1.3;
+    margin: 0;
 }
 
 .company-contact {
@@ -253,6 +162,12 @@
 
 .company-contact strong {
     font-size: 14px;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.company-contact p {
+    margin: 3px 0;
 }
 
 /* Responsive - stack on small screens */
@@ -270,19 +185,263 @@
         text-align: center;
     }
 }
-        
+
+/* Print Styles - Keep horizontal */
+@media print {
+    .letter-header {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        page-break-after: avoid;
+    }
+    
+    .logo-section {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 15px !important;
+    }
+    
+    .company-contact {
+        text-align: right !important;
+    }
+}
+
+/* ================= MAIN CONTENT STYLES ================= */
+.increment-letter {
+    font-family: 'Times New Roman', Times, serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0;
+    position: relative;
+    background-color: white;
+}
+
+/* Letter Title */
+.text-center {
+    text-align: center;
+}
+
+.increment-letter h2 {
+    text-align: center;
+    text-decoration: underline;
+    color: #000;
+    font-size: 18pt;
+    margin: 30px 0;
+    font-weight: bold;
+}
+
+/* Employee Details */
+.employee-details {
+    margin-bottom: 25px;
+}
+
+.employee-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 12pt;
+}
+
+.employee-id {
+    margin-top: 0;
+    font-size: 12pt;
+}
+
+/* Date */
+.date-section {
+    text-align: right;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.date-section strong {
+    font-weight: bold;
+}
+
+/* Letter Content */
+.letter-content {
+    text-align: justify;
+    line-height: 1.6;
+    margin-bottom: 30px;
+    font-size: 12pt;
+}
+
+.letter-content p {
+    margin-bottom: 15px;
+}
+
+/* Salary Breakdown Table */
+.salary-breakdown {
+    margin: 30px 0;
+}
+
+.salary-breakdown h4 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 14pt;
+    font-weight: 600;
+}
+
+.salary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12pt;
+    margin-bottom: 20px;
+}
+
+.salary-table th {
+    background-color: #f2f2f2;
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #ddd;
+    font-weight: 600;
+}
+
+.salary-table td {
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+}
+
+.salary-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.salary-table .total-row {
+    background-color: #e9ecef;
+    font-weight: bold;
+}
+
+.net-salary-box {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #e8f4f8;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.net-salary-box .label {
+    color: #555;
+    font-size: 12pt;
+    margin-bottom: 5px;
+}
+
+.net-salary-box .value {
+    font-size: 20pt;
+    font-weight: 700;
+    color: #28a745;
+}
+
+/* Signature Section */
+.signature-section {
+    margin-top: 50px;
+}
+
+.signature-image {
+    margin-bottom: 10px;
+}
+
+.signature-image img {
+    height: 70px;
+    max-width: 200px;
+    object-fit: contain;
+}
+
+.signature-details {
+    margin-bottom: 0;
+}
+
+.signature-details p {
+    margin: 5px 0;
+    font-size: 12pt;
+}
+
+.signature-details strong {
+    font-weight: bold;
+}
+
+/* Footer */
+.document-footer {
+    margin-top: 40px;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 10px;
+    font-size: 9pt;
+    color: #777;
+    text-align: center;
+}
+
+.document-footer p {
+    margin-bottom: 0;
+}
+
+/* Responsive Main Content */
+@media (max-width: 768px) {
+    .increment-letter h2 {
+        font-size: 18pt;
+    }
+    
+    .salary-table {
+        font-size: 11pt;
+    }
+    
+    .net-salary-box .value {
+        font-size: 18pt;
+    }
+}
+
+@media (max-width: 480px) {
+    .salary-table {
+        font-size: 10pt;
+        overflow-x: auto;
+        display: block;
+    }
+    
+    .net-salary-box {
+        padding: 10px;
+    }
+    
+    .net-salary-box .value {
+        font-size: 16pt;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .increment-letter {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    .salary-table {
+        page-break-inside: avoid;
+    }
+    
+    .net-salary-box {
+        background-color: #f5f5f5;
+        page-break-inside: avoid;
+    }
+    
+    .signature-section {
+        page-break-inside: avoid;
+    }
+    
+    .document-footer {
+        page-break-inside: avoid;
+    }
+}
 </style>
 
-<!-- Watermark placed OUTSIDE the main container – appears on every page in PDF -->
+<!-- Watermark -->
 {% include '_watermark.html' %}
 
-<div class="increment-letter" style="font-family: 'Arial', sans-serif; max-width: 800px; margin: 0 auto; padding: 30px; position: relative; background-color: white;">
+<div class="increment-letter">
+    <!-- Letterhead - Matching Relieving Letter Style -->
     <div class="letter-header">
         <div class="logo-section">
             {% if company.logo_with_name %}
-                <img src="{{ url_for('static', filename='images/' + company.logo_with_name) }}" alt="{{ company.name }}" style="height: 80px; object-fit: contain;">
+                <img src="{{ url_for('static', filename='images/' + company.logo_with_name) }}" alt="{{ company.name }}">
             {% elif company.logo %}
-                <img src="{{ url_for('static', filename='images/' + company.logo) }}" alt="Logo" style="height: 60px; object-fit: contain;">
+                <img src="{{ url_for('static', filename='images/' + company.logo) }}" alt="Logo">
                 <div class="company-info">
                     <div class="company-name">{{ company.name }}</div>
                     <div class="company-address">{{ company.address }}</div>
@@ -295,36 +454,36 @@
             {% endif %}
         </div>
         <div class="company-contact">
-            <strong>{{ company.name }}</strong><br>
-            {{ company.address }}<br>
-            Phone: {{ company.phone }}<br>
+            <strong>{{ company.name }}</strong>
+            <p>{{ company.address }}</p>
+            <p>Phone: {{ company.phone }}<br>
             Email: {{ company.email }}<br>
-            Website: {{ company.website }}
+            Website: {{ company.website }}</p>
         </div>
     </div>
+
     <!-- Letter Title -->
-    <h2 class="text-center" style="color: #0d6efd; text-align: center; margin-bottom: 30px;">
-        Increment Letter
+    <h2 class="text-center">
+        INCREMENT LETTER
     </h2>
 
     <!-- Employee Details -->
-    <div style="margin-bottom: 20px;">
-        <p style="font-weight: bold; margin-bottom: 5px;">{{ data.full_name|title }}</p>
-        <p style="margin-top: 0;"><strong>EMPLOYEE ID - </strong> {{ data.employee_id or 'Not Specified' }}</p>
+    <div class="employee-details">
+        <div><strong>Employee Name:</strong> {{ data.full_name|title }}</div>
+        <div><strong>Employee ID:</strong> {{ data.employee_id or 'Not Specified' }}</div>
     </div>
 
     <!-- Date -->
-    <div style="text-align: right; margin-bottom: 20px;">
+    <div class="date-section">
         <strong>Date:</strong> {{ now.strftime('%d %B %Y') }}
     </div>
 
     <!-- Salutation -->
-    <p style="margin-bottom: 20px;">
-        Dear {{data.full_name.split(' ')[0]|capitalize if data.full_name else 'Employee' }},
-    </p>
+    <div class="letter-content">
+        <p>
+            Dear {{ data.full_name.split(' ')[0]|capitalize if data.full_name else 'Employee' }},
+        </p>
 
-    <!-- Letter Content -->
-    <div style="text-align: justify; line-height: 1.6; margin-bottom: 30px;">
         <p>
             You are aware of the recent salary appraisal/changes in the levels being planned. New levels and
             corresponding titles are being introduced and you, along with all other employees, will be placed in the
@@ -359,78 +518,77 @@
         </p>
     </div>
 
- <!-- Salary Breakdown Section (Simplified) -->
-{% if data.salary_breakdown %}
-<div style="margin: 30px 0;">
-    <h4 style="color: #333; margin-bottom: 15px; font-size: 18px; font-weight: 600;">Revised Salary Breakdown</h4>
-    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-        <tr style="background-color: #f2f2f2;">
-            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Component</th>
-            <th style="padding: 10px; text-align: right; border: 1px solid #ddd;">Amount (₹)</th>
-        </tr>
-        <tr>
-            <td style="padding: 8px 10px; border: 1px solid #ddd;">Basic Salary (50%)</td>
-            <td style="padding: 8px 10px; text-align: right; border: 1px solid #ddd;">{{ "{:,.0f}".format(data.salary_breakdown.basic|float) }}</td>
-        </tr>
-        <tr style="background-color: #f9f9f9;">
-            <td style="padding: 8px 10px; border: 1px solid #ddd;">HRA (50% of Basic)</td>
-            <td style="padding: 8px 10px; text-align: right; border: 1px solid #ddd;">{{ "{:,.0f}".format(data.salary_breakdown.hra|float) }}</td>
-        </tr>
-        <tr>
-            <td style="padding: 8px 10px; border: 1px solid #ddd;">Conveyance</td>
-            <td style="padding: 8px 10px; text-align: right; border: 1px solid #ddd;">{{ "{:,.0f}".format(data.salary_breakdown.conveyance|float) }}</td>
-        </tr>
-        <tr style="background-color: #f9f9f9;">
-            <td style="padding: 8px 10px; border: 1px solid #ddd;">Medical</td>
-            <td style="padding: 8px 10px; text-align: right; border: 1px solid #ddd;">{{ "{:,.0f}".format(data.salary_breakdown.medical|float) }}</td>
-        </tr>
-        <tr>
-            <td style="padding: 8px 10px; border: 1px solid #ddd;">Telephone</td>
-            <td style="padding: 8px 10px; text-align: right; border: 1px solid #ddd;">{{ "{:,.0f}".format(data.salary_breakdown.telephone|float) }}</td>
-        </tr>
-        <tr style="background-color: #f9f9f9;">
-            <td style="padding: 8px 10px; border: 1px solid #ddd;">Special Allowance</td>
-            <td style="padding: 8px 10px; text-align: right; border: 1px solid #ddd;">{{ "{:,.0f}".format(data.salary_breakdown.special_allowance|float) }}</td>
-        </tr>
-        <tr>
-            <td style="padding: 8px 10px; border: 1px solid #ddd;">Professional Tax</td>
-            <td style="padding: 8px 10px; text-align: right; border: 1px solid #ddd;">-{{ "{:,.0f}".format(data.salary_breakdown.professional_tax|float) }}</td>
-        </tr>
-        <tr style="background-color: #e9ecef; font-weight: bold;">
-            <td style="padding: 10px; border: 1px solid #ddd;">Gross Salary</td>
-            <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">{{ "{:,.0f}".format(data.salary_breakdown.gross_salary|float) }}</td>
-        </tr>
-    </table>
+    <!-- Salary Breakdown Section -->
+    {% if data.salary_breakdown %}
+    <div class="salary-breakdown">
+        <h4>Revised Salary Breakdown</h4>
+        <table class="salary-table">
+            <thead>
+                <tr>
+                    <th>Component</th>
+                    <th>Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Basic Salary (50%)</td>
+                    <td style="text-align: right;">{{ "{:,.0f}".format(data.salary_breakdown.basic|float) }}</td>
+                </tr>
+                <tr>
+                    <td>HRA (50% of Basic)</td>
+                    <td style="text-align: right;">{{ "{:,.0f}".format(data.salary_breakdown.hra|float) }}</td>
+                </tr>
+                <tr>
+                    <td>Conveyance</td>
+                    <td style="text-align: right;">{{ "{:,.0f}".format(data.salary_breakdown.conveyance|float) }}</td>
+                </tr>
+                <tr>
+                    <td>Medical</td>
+                    <td style="text-align: right;">{{ "{:,.0f}".format(data.salary_breakdown.medical|float) }}</td>
+                </tr>
+                <tr>
+                    <td>Telephone</td>
+                    <td style="text-align: right;">{{ "{:,.0f}".format(data.salary_breakdown.telephone|float) }}</td>
+                </tr>
+                <tr>
+                    <td>Special Allowance</td>
+                    <td style="text-align: right;">{{ "{:,.0f}".format(data.salary_breakdown.special_allowance|float) }}</td>
+                </tr>
+                <tr>
+                    <td>Professional Tax</td>
+                    <td style="text-align: right;">-{{ "{:,.0f}".format(data.salary_breakdown.professional_tax|float) }}</td>
+                </tr>
+                <tr class="total-row">
+                    <td><strong>Gross Salary</strong></td>
+                    <td style="text-align: right;"><strong>{{ "{:,.0f}".format(data.salary_breakdown.gross_salary|float) }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
 
-    <div style="margin-top: 20px; padding: 15px; background-color: #e8f4f8; border-radius: 5px; text-align: center;">
-        <div style="color: #555; font-size: 14px;">New Monthly Net Salary</div>
-        <div style="font-size: 24px; font-weight: 700; color: #28a745;">₹{{ "{:,.0f}".format(data.salary_breakdown.net_salary|float) }}</div>
+        <div class="net-salary-box">
+            <div class="label">New Monthly Net Salary</div>
+            <div class="value">₹{{ "{:,.0f}".format(data.salary_breakdown.net_salary|float) }}</div>
+        </div>
     </div>
-</div>
-{% endif %}
+    {% endif %}
 
-        <!-- Closing -->
-    <div class="row mt-5" style="margin-top: 50px;">
-        <div class="col-md-6">
-            <div style="height: 80px; margin-bottom: 10px;">
-                {% if company.signature %}
-                    <img src="{{ request.url_root }}static/images/signatures/{{ company.signature }}" 
-                         alt="Authorized Signature" 
-                         style="height: 100px; max-width: 200px; object-fit: contain;">
-                {% endif %}
-            </div>
-            <p style="margin-bottom: 0;">
-                <strong>{{ company.hr_name }}</strong><br>
-                {{ company.hr_designation }}<br>
-                <span style="font-size: 14px; color: #111111;">{{ company.name }}</span>
-            </p>
+    <!-- Signature Section -->
+    <div class="signature-section">
+        <div class="signature-image">
+            {% if company.signature %}
+                <img src="{{ request.url_root }}static/images/signatures/{{ company.signature }}" 
+                     alt="Authorized Signature">
+            {% endif %}
+        </div>
+        <div class="signature-details">
+            <p><strong>{{ company.hr_name }}</strong><br>
+            {{ company.hr_designation }}<br>
+            {{ company.name }}</p>
         </div>
     </div>
 
     <!-- Footer -->
-    <div style="margin-top: 40px; border-top: 1px solid #e0e0e0; padding-top: 10px; font-size: 12px; color: #777; text-align: center;">
-        <p style="margin-bottom: 0;">
-            *Company Confidential - This communication is confidential between you and {{ company.name }}
-        </p>
-    </div> 
+    <div class="document-footer">
+        <p>*Company Confidential - This communication is confidential between you and {{ company.name }}</p>
+    </div>
 </div>
