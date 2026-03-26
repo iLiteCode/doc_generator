@@ -8,8 +8,7 @@ import io
 import zipfile
 from datetime import datetime, date, timedelta
 from dotenv import load_dotenv
-from weasyprint import HTML, CSS
-from weasyprint.text.fonts import FontConfiguration
+from weasyprint import HTML
 
 # Load environment variables
 load_dotenv()
@@ -520,6 +519,8 @@ def embed_images_as_base64(html_content):
     images_folder = os.path.join(static_folder, 'images')
     signatures_folder = os.path.join(images_folder, 'signatures')
     
+    print(f"🔍 Static folder: {static_folder}")
+    
     def replace_image(match):
         img_tag = match.group(0)
         src_match = re.search(r'src=["\']([^"\']+)["\']', img_tag)
@@ -528,10 +529,17 @@ def embed_images_as_base64(html_content):
         
         src = src_match.group(1)
         
+        # Skip if already base64
         if src.startswith('data:'):
             return img_tag
         
-        if 'signatures' in src:
+        abs_path = None
+        
+        # Find image path
+        if src.startswith('/static/'):
+            relative_path = src.replace('/static/', '')
+            abs_path = os.path.join(static_folder, relative_path)
+        elif 'signatures' in src:
             filename = src.split('signatures/')[-1]
             abs_path = os.path.join(signatures_folder, filename)
         elif 'images' in src:
@@ -540,20 +548,23 @@ def embed_images_as_base64(html_content):
         else:
             return img_tag
         
-        if os.path.exists(abs_path):
-            with open(abs_path, 'rb') as f:
-                image_data = base64.b64encode(f.read()).decode('utf-8')
-            
-            ext = abs_path.split('.')[-1].lower()
-            if ext in ['jpg', 'jpeg']:
-                mime = 'image/jpeg'
-            elif ext == 'png':
-                mime = 'image/png'
-            else:
-                mime = f'image/{ext}'
-            
-            new_src = f'data:{mime};base64,{image_data}'
-            return img_tag.replace(src, new_src)
+        if abs_path and os.path.exists(abs_path):
+            try:
+                with open(abs_path, 'rb') as f:
+                    image_data = base64.b64encode(f.read()).decode('utf-8')
+                
+                ext = abs_path.split('.')[-1].lower()
+                if ext in ['jpg', 'jpeg']:
+                    mime = 'image/jpeg'
+                elif ext == 'png':
+                    mime = 'image/png'
+                else:
+                    mime = f'image/{ext}'
+                
+                new_src = f'data:{mime};base64,{image_data}'
+                return img_tag.replace(src, new_src)
+            except:
+                return img_tag
         
         return img_tag
     
@@ -568,7 +579,7 @@ def html_to_pdf(html_content, output_path):
         
         # Embed images
         html_content = embed_images_as_base64(html_content)
-        print(f"📸 Images embedded, new length: {len(html_content)}")
+        print(f"📸 Images embedded")
         
         # Create temp file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
@@ -577,15 +588,8 @@ def html_to_pdf(html_content, output_path):
         
         print(f"📄 Temp HTML: {temp_html}")
         
-        # Font configuration
-        font_config = FontConfiguration()
-        
-        # Convert to PDF
-        HTML(filename=temp_html).write_pdf(
-            output_path,
-            font_config=font_config,
-            zoom=1.0
-        )
+        # Convert to PDF - WITHOUT font_config
+        HTML(filename=temp_html).write_pdf(output_path)
         
         # Clean up
         if os.path.exists(temp_html):
@@ -599,7 +603,7 @@ def html_to_pdf(html_content, output_path):
         import traceback
         traceback.print_exc()
         return False
-    
+
 # ========== TEST ROUTE ==========
 
 @app.route('/test-pdf-generation')
