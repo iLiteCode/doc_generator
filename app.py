@@ -1,91 +1,71 @@
-import tempfile
+import os
 import re
 import base64
-import os
 import tempfile
-from weasyprint import HTML
-
-from dotenv import load_dotenv
+import pickle
 import json
+import io
+import zipfile
+from datetime import datetime, date, timedelta
+from dotenv import load_dotenv
 
+# Load environment variables
 load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
 
+# Set OAuth environment variables
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
-from flask import Flask, flash, jsonify, render_template, request, redirect, url_for, session, send_file, send_from_directory
+
+# Flask imports
+from flask import Flask, flash, jsonify, render_template, request, redirect, url_for, session, send_file, make_response, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.utils import secure_filename
-from datetime import datetime, date, timedelta
-import io
-import zipfile
-from flask import send_file, make_response, request
-from googleapiclient.http import MediaIoBaseDownload
-
-try:
-    from weasyprint import HTML
-except:
-    HTML = None
-from flask import redirect, url_for, flash
-from config import COMPANIES
 from werkzeug.security import generate_password_hash, check_password_hash
-from humanize import intword
-from google.oauth2 import service_account
-from googleapiclient.discovery import build  
-from googleapiclient.http import MediaFileUpload  
-from google.oauth2.credentials import Credentials 
-from google_auth_oauthlib.flow import Flow  
-import pickle
-import uuid
-from num2words import num2words
-from googleapiclient.http import MediaIoBaseDownload
 
+# Google imports
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import Flow
+
+# PDF imports
+from weasyprint import HTML
+from num2words import num2words
+from humanize import intword
+
+# Database URL
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Initialize Flask app
 app = Flask(__name__)
 app.secret_key = "super-secret-key"
 
+# Database configuration
 if DATABASE_URL:
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 else:
-    # Local development – use MySQL
     app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://LiteCode:LiteCode%400804@localhost/lc_lms'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, "generated_docs")
-# Google Drive Configuration
 app.config['GOOGLE_DRIVE_TOKEN_FOLDER'] = os.path.join(app.root_path, "tokens")
-os.makedirs(app.config['GOOGLE_DRIVE_TOKEN_FOLDER'], exist_ok=True)
 
-# Google OAuth Configuration - Use environment variables directly
+# Create required directories
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['GOOGLE_DRIVE_TOKEN_FOLDER'], exist_ok=True)
+os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], "employee_documents"), exist_ok=True)
+os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], "profiles"), exist_ok=True)
+
+# Google OAuth Configuration
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
 REDIRECT_URI = os.getenv('OAUTH_REDIRECT_URI', 
     'https://doc-generator-z2b2.onrender.com/oauth2callback' if os.getenv('RENDER') else 'http://localhost:5000/oauth2callback')
 
-if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
-    print("Warning: Google OAuth credentials not found in environment variables")
-    # You can add fallback logic here if needed
-else:
-    # Create client config from environment variables
-    client_config = {
-        "client_id": GOOGLE_CLIENT_ID,
-        "project_id": os.getenv('GOOGLE_PROJECT_ID', ''),
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token",
-        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "client_secret": GOOGLE_CLIENT_SECRET,
-        "redirect_uris": [REDIRECT_URI]
-    }
-
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
-os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], "employee_documents"), exist_ok=True)
-os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], "profiles"), exist_ok=True)
-
-
+# Initialize database
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 #Admin model
 class Admin(db.Model):
@@ -583,7 +563,7 @@ def embed_images_as_base64(html_content):
     return html_content
 
 def html_to_pdf(html_content, output_path):
-    """Convert HTML to PDF using WeasyPrint 53.3"""
+    """Convert HTML to PDF using WeasyPrint"""
     try:
         print(f"📁 Output path: {output_path}")
         print(f"📄 HTML length: {len(html_content)}")
@@ -599,7 +579,7 @@ def html_to_pdf(html_content, output_path):
         
         print(f"📄 Temp HTML: {temp_html}")
         
-        # Convert to PDF using WeasyPrint 53.3
+        # Convert to PDF
         HTML(filename=temp_html).write_pdf(output_path)
         
         # Clean up
@@ -618,11 +598,12 @@ def html_to_pdf(html_content, output_path):
         traceback.print_exc()
         return False
 
+# ========== TEST ROUTE ==========
+
 @app.route('/test-pdf-generation')
 def test_pdf_generation():
     """Test PDF generation with debugging"""
     try:
-        # Simple test HTML - Use double curly braces for CSS
         test_html = """
         <html>
         <head>
@@ -639,25 +620,19 @@ def test_pdf_generation():
         </html>
         """.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         
-        # Create output path
         output_path = os.path.join(app.config['UPLOAD_FOLDER'], 'test_debug.pdf')
         
         print(f"📁 Output path: {output_path}")
         
-        # Generate PDF
         result = html_to_pdf(test_html, output_path)
         
         if result and os.path.exists(output_path):
-            print(f"✅ Sending PDF to browser")
             return send_file(output_path, as_attachment=True, download_name='test_debug.pdf')
         else:
-            print(f"❌ PDF generation failed. Result: {result}")
-            return f"PDF generation failed. Check console logs.", 500
+            return f"PDF generation failed. Result: {result}", 500
             
     except Exception as e:
         import traceback
-        print(f"❌ Exception: {e}")
-        traceback.print_exc()
         return f"Error: {str(e)}<br><pre>{traceback.format_exc()}</pre>", 500
 
 # #local function
