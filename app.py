@@ -547,7 +547,7 @@ def embed_images_as_base64(html_content):
         if src.startswith('data:'):
             return img_tag
         
-        # Find image path (handle both /static/images/ and static/images/)
+        # Find image path
         if 'signatures' in src:
             filename = src.split('signatures/')[-1]
             abs_path = os.path.join(signatures_folder, filename)
@@ -562,7 +562,15 @@ def embed_images_as_base64(html_content):
                 image_data = base64.b64encode(f.read()).decode('utf-8')
             
             ext = abs_path.split('.')[-1].lower()
-            mime = 'image/jpeg' if ext in ['jpg', 'jpeg'] else f'image/{ext}'
+            if ext in ['jpg', 'jpeg']:
+                mime = 'image/jpeg'
+            elif ext == 'png':
+                mime = 'image/png'
+            elif ext == 'svg':
+                mime = 'image/svg+xml'
+            else:
+                mime = f'image/{ext}'
+            
             new_src = f'data:{mime};base64,{image_data}'
             return img_tag.replace(src, new_src)
         
@@ -572,15 +580,23 @@ def embed_images_as_base64(html_content):
     return html_content
 
 def html_to_pdf(html_content, output_path):
-    """Convert HTML to PDF with embedded images"""
+    """Convert HTML to PDF - Production version for Render"""
     try:
+        from weasyprint import HTML
+        
+        print(f"📁 Output path: {output_path}")
+        print(f"📄 HTML length: {len(html_content)}")
+        
         # Embed images as base64
         html_content = embed_images_as_base64(html_content)
+        print(f"📸 Images embedded, new length: {len(html_content)}")
         
         # Create temporary HTML file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
             f.write(html_content)
             temp_html = f.name
+        
+        print(f"📄 Temp HTML: {temp_html}")
         
         # Convert to PDF
         HTML(filename=temp_html).write_pdf(output_path)
@@ -590,41 +606,139 @@ def html_to_pdf(html_content, output_path):
             os.unlink(temp_html)
         
         print(f"✅ PDF generated: {output_path}")
+        if os.path.exists(output_path):
+            print(f"📁 PDF size: {os.path.getsize(output_path)} bytes")
+        
         return True
         
     except Exception as e:
-        print(f"PDF error: {e}")
+        print(f"❌ PDF error: {e}")
         import traceback
         traceback.print_exc()
         return False
 
-#local function
+@app.route('/test-pdf-generation')
+def test_pdf_generation():
+    """Test PDF generation with debugging"""
+    try:
+        # Simple test HTML - Use double curly braces for CSS
+        test_html = """
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial; padding: 50px; }}
+                h1 {{ color: blue; }}
+            </style>
+        </head>
+        <body>
+            <h1>Test PDF</h1>
+            <p>This is a test PDF document generated on Render.</p>
+            <p>Timestamp: {}</p>
+        </body>
+        </html>
+        """.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        
+        # Create output path
+        output_path = os.path.join(app.config['UPLOAD_FOLDER'], 'test_debug.pdf')
+        
+        print(f"📁 Output path: {output_path}")
+        
+        # Generate PDF
+        result = html_to_pdf(test_html, output_path)
+        
+        if result and os.path.exists(output_path):
+            print(f"✅ Sending PDF to browser")
+            return send_file(output_path, as_attachment=True, download_name='test_debug.pdf')
+        else:
+            print(f"❌ PDF generation failed. Result: {result}")
+            return f"PDF generation failed. Check console logs.", 500
+            
+    except Exception as e:
+        import traceback
+        print(f"❌ Exception: {e}")
+        traceback.print_exc()
+        return f"Error: {str(e)}<br><pre>{traceback.format_exc()}</pre>", 500
+
+# #local function
 # def html_to_pdf(html_content, output_path):
+#     """Convert HTML to PDF using WeasyPrint (Local testing)"""
+    
+#     import tempfile
+#     import subprocess
+#     import os
+#     from datetime import datetime
+    
+#     print("=" * 60)
+#     print(f"🔍 PDF GENERATION STARTED at {datetime.now()}")
+#     print("=" * 60)
+    
 #     # Path to the standalone WeasyPrint executable (for local Windows)
 #     weasyprint_path = os.path.join(app.root_path, 'weasyprint', 'weasyprint.exe')
+#     print(f"📁 WeasyPrint path: {weasyprint_path}")
+#     print(f"📁 WeasyPrint exists: {os.path.exists(weasyprint_path)}")
     
+#     # Create temp HTML file
 #     with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
 #         f.write(html_content)
 #         temp_html_path = f.name
+    
+#     print(f"📄 Temp HTML file: {temp_html_path}")
+#     print(f"📄 HTML size: {len(html_content)} characters")
+    
+#     # Save temp HTML for debugging
+#     debug_html_path = output_path.replace('.pdf', '_debug.html')
+#     with open(debug_html_path, 'w', encoding='utf-8') as f:
+#         f.write(html_content)
+#     print(f"🐛 Debug HTML saved: {debug_html_path}")
 
 #     try:
+#         print(f"🔄 Running WeasyPrint command...")
+#         print(f"   Command: {weasyprint_path} {temp_html_path} {output_path}")
+        
 #         result = subprocess.run(
 #             [weasyprint_path, temp_html_path, output_path],
 #             capture_output=True,
 #             text=True,
-#             timeout=30
+#             timeout=60  # Increased timeout
 #         )
+        
+#         print(f"📊 Return code: {result.returncode}")
+        
 #         if result.returncode == 0:
+#             print(f"✅ PDF generated successfully: {output_path}")
+#             if os.path.exists(output_path):
+#                 print(f"📁 PDF size: {os.path.getsize(output_path)} bytes")
 #             return True
 #         else:
-#             print("WeasyPrint error:", result.stderr)
+#             print("❌ WeasyPrint error:")
+#             print(f"   stderr: {result.stderr}")
+#             print(f"   stdout: {result.stdout}")
 #             return False
+            
+#     except subprocess.TimeoutExpired:
+#         print("❌ WeasyPrint timeout after 60 seconds")
+#         return False
+#     except FileNotFoundError:
+#         print(f"❌ WeasyPrint executable not found at: {weasyprint_path}")
+#         print("   Please check if weasyprint is installed correctly")
+#         return False
 #     except Exception as e:
-#         print("WeasyPrint exception:", e)
+#         print(f"❌ WeasyPrint exception: {e}")
+#         import traceback
+#         traceback.print_exc()
 #         return False
 #     finally:
+#         # Clean up temp file
 #         if os.path.exists(temp_html_path):
-#             os.unlink(temp_html_path)
+#             try:
+#                 os.unlink(temp_html_path)
+#                 print(f"🧹 Cleaned up: {temp_html_path}")
+#             except:
+#                 pass
+        
+#         print("=" * 60)
+#         print("🔍 PDF GENERATION ENDED")
+#         print("=" * 60)
 
 @app.template_filter('humanize')
 def humanize_filter(value):
